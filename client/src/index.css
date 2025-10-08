@@ -14,41 +14,41 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 0 0% 100%;
+  --background: 180 30% 92%;
 
-  --foreground: 220 15% 12%;
+  --foreground: 180 45% 20%;
 
-  --border: 220 10% 88%;
+  --border: 180 25% 75%;
 
-  --card: 220 10% 98%;
+  --card: 0 0% 100%;
 
-  --card-foreground: 220 15% 12%;
+  --card-foreground: 180 45% 20%;
 
-  --card-border: 220 10% 92%;
+  --card-border: 180 25% 80%;
 
-  --sidebar: 220 10% 96%;
+  --sidebar: 180 30% 90%;
 
-  --sidebar-foreground: 220 15% 12%;
+  --sidebar-foreground: 180 45% 20%;
 
-  --sidebar-border: 220 10% 90%;
+  --sidebar-border: 180 25% 75%;
 
-  --sidebar-primary: 180 65% 40%;
+  --sidebar-primary: 180 50% 50%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 220 12% 92%;
+  --sidebar-accent: 180 30% 85%;
 
-  --sidebar-accent-foreground: 220 15% 12%;
+  --sidebar-accent-foreground: 180 45% 20%;
 
-  --sidebar-ring: 180 65% 45%;
+  --sidebar-ring: 180 55% 55%;
 
-  --popover: 220 10% 94%;
+  --popover: 0 0% 100%;
 
-  --popover-foreground: 220 15% 12%;
+  --popover-foreground: 180 45% 20%;
 
-  --popover-border: 220 10% 86%;
+  --popover-border: 180 25% 80%;
 
-  --primary: 180 65% 40%;
+  --primary: 180 50% 50%;
 
   --primary-foreground: 0 0% 100%;
 
@@ -132,43 +132,43 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 15% 12%;
+  --background: 180 25% 12%;
 
-  --foreground: 0 0% 95%;
+  --foreground: 180 15% 90%;
 
-  --border: 220 10% 25%;
+  --border: 180 20% 25%;
 
-  --card: 220 15% 16%;
+  --card: 180 20% 16%;
 
-  --card-foreground: 0 0% 95%;
+  --card-foreground: 180 15% 90%;
 
-  --card-border: 220 10% 22%;
+  --card-border: 180 15% 22%;
 
-  --sidebar: 220 15% 14%;
+  --sidebar: 180 20% 14%;
 
-  --sidebar-foreground: 0 0% 95%;
+  --sidebar-foreground: 180 15% 90%;
 
-  --sidebar-border: 220 10% 20%;
+  --sidebar-border: 180 15% 20%;
 
-  --sidebar-primary: 180 65% 45%;
+  --sidebar-primary: 180 55% 50%;
 
-  --sidebar-primary-foreground: 220 15% 12%;
+  --sidebar-primary-foreground: 180 25% 12%;
 
-  --sidebar-accent: 220 15% 18%;
+  --sidebar-accent: 180 20% 20%;
 
-  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-accent-foreground: 180 15% 90%;
 
-  --sidebar-ring: 180 65% 55%;
+  --sidebar-ring: 180 60% 55%;
 
-  --popover: 220 15% 18%;
+  --popover: 180 20% 18%;
 
-  --popover-foreground: 0 0% 95%;
+  --popover-foreground: 180 15% 90%;
 
-  --popover-border: 220 10% 26%;
+  --popover-border: 180 15% 26%;
 
-  --primary: 180 65% 45%;
+  --primary: 180 55% 50%;
 
-  --primary-foreground: 220 15% 12%;
+  --primary-foreground: 180 25% 12%;
 
   --secondary: 220 12% 22%;
 
