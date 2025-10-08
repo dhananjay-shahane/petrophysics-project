@@ -1,5 +1,7 @@
 import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
+import { useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ZonationPanelNew({ 
   onClose, 
@@ -18,48 +20,71 @@ export default function ZonationPanelNew({
   savedSize?: { width: number; height: number };
   onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      toast({
+        title: "Tops File Selected",
+        description: `Selected: ${file.name}`,
+      });
+    }
+  };
+
   return (
-    <DockablePanel 
-      id="zonation" 
-      title="Zonation" 
-      onClose={onClose}
-      isFloating={isFloating}
-      onDock={onDock}
-      onFloat={onFloat}
-      savedPosition={savedPosition}
-      savedSize={savedSize}
-      onGeometryChange={onGeometryChange}
-    >
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 p-2 border-b border-border">
-          <span className="text-sm text-foreground font-medium whitespace-nowrap">Select Tops set:</span>
-          <input 
-            type="text"
-            className="flex-1 h-8 px-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
-            data-testid="input-tops-set"
-          />
-          <Button size="sm" variant="outline" data-testid="button-browse">...</Button>
-        </div>
-        <div className="flex-1 overflow-auto p-2">
-          <div className="space-y-1">
-            {Array.from({ length: 8 }, (_, i) => (
-              <div
-                key={i}
-                className="h-7 bg-[#B8D8DC]/30 dark:bg-primary/10 border-l-4 border-[#4A9FA8] dark:border-primary"
-                data-testid={`zonation-bar-${i}`}
-              />
-            ))}
+    <>
+      <DockablePanel 
+        id="zonation" 
+        title="Zonation" 
+        onClose={onClose}
+        isFloating={isFloating}
+        onDock={onDock}
+        onFloat={onFloat}
+        savedPosition={savedPosition}
+        savedSize={savedSize}
+        onGeometryChange={onGeometryChange}
+      >
+        <div className="flex flex-col h-full bg-white dark:bg-card">
+          <div className="flex items-center gap-2 p-3 border-b border-border">
+            <span className="text-sm text-foreground font-medium whitespace-nowrap">Select Tops set:</span>
+            <input 
+              type="text"
+              className="flex-1 h-8 px-3 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Choose a file..."
+              readOnly
+              data-testid="input-tops-set"
+            />
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleBrowseClick}
+              className="px-3"
+              data-testid="button-browse"
+            >
+              ...
+            </Button>
+          </div>
+          <div className="flex-1 p-3">
+            <div className="w-full h-full border-2 border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground">
+              No tops loaded
+            </div>
           </div>
         </div>
-        <div className="p-2 border-t border-border">
-          <select 
-            className="w-full h-8 px-2 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
-            data-testid="select-zone"
-          >
-            <option>Select zone...</option>
-          </select>
-        </div>
-      </div>
-    </DockablePanel>
+      </DockablePanel>
+      
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".txt,.csv,.las"
+        onChange={handleFileSelect}
+      />
+    </>
   );
 }

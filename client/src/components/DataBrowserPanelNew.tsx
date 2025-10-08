@@ -69,21 +69,21 @@ export default function DataBrowserPanelNew({
       defaultSize={{ width: 720, height: 500 }}
     >
       <div className="flex h-full">
-        <div className="w-60 border-r border-[#A0C8CC] bg-[#E8F4F5] dark:bg-card/50 p-3">
-          <div className="text-sm text-[#2C5F66] dark:text-muted-foreground">
+        <div className="w-60 border-r border-border bg-muted dark:bg-card/50 p-3">
+          <div className="text-sm text-foreground dark:text-muted-foreground">
             No well selected
           </div>
         </div>
         
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex h-10 bg-[#B8D8DC] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border shrink-0">
+          <div className="flex h-10 bg-secondary dark:bg-card border-b border-border dark:border-card-border shrink-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`px-6 py-2 text-sm font-medium border-r border-[#A0C8CC] dark:border-card-border transition-colors ${
+                className={`px-6 py-2 text-sm font-medium border-r border-border dark:border-card-border transition-colors ${
                   activeTab === tab.id
-                    ? "bg-white dark:bg-background text-[#2C5F66] dark:text-foreground"
-                    : "text-[#2C5F66] dark:text-muted-foreground hover:bg-[#A0C8CC]/30"
+                    ? "bg-white dark:bg-background text-foreground dark:text-foreground"
+                    : "text-foreground dark:text-muted-foreground hover:bg-accent"
                 }`}
                 onClick={() => setActiveTab(tab.id)}
                 data-testid={`tab-${tab.id}`}
@@ -93,10 +93,9 @@ export default function DataBrowserPanelNew({
             ))}
           </div>
 
-          <div className="flex gap-2 p-2 bg-[#E8F4F5] dark:bg-card/30 border-b border-[#A0C8CC] dark:border-border shrink-0">
+          <div className="flex gap-2 p-2 bg-muted dark:bg-card/30 border-b border-border dark:border-border shrink-0">
             <Button 
               size="sm" 
-              className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleDelete}
               data-testid="button-delete"
@@ -105,7 +104,6 @@ export default function DataBrowserPanelNew({
             </Button>
             <Button 
               size="sm" 
-              className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleAdd}
               data-testid="button-add"
@@ -114,7 +112,6 @@ export default function DataBrowserPanelNew({
             </Button>
             <Button 
               size="sm" 
-              className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleExport}
               data-testid="button-export"
@@ -125,11 +122,11 @@ export default function DataBrowserPanelNew({
 
           <div className="flex-1 overflow-auto bg-white dark:bg-background min-h-0">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-[#E8F4F5] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border">
+              <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border dark:border-card-border">
                 <tr className="h-10">
-                  <th className="px-4 py-2 text-left font-semibold text-[#2C5F66] dark:text-foreground border-r border-[#A0C8CC] dark:border-card-border">Name</th>
-                  <th className="px-4 py-2 text-left font-semibold text-[#2C5F66] dark:text-foreground border-r border-[#A0C8CC] dark:border-card-border">Value</th>
-                  <th className="px-4 py-2 text-left font-semibold text-[#2C5F66] dark:text-foreground">Description</th>
+                  <th className="px-4 py-2 text-left font-semibold text-foreground dark:text-foreground border-r border-border dark:border-card-border">Name</th>
+                  <th className="px-4 py-2 text-left font-semibold text-foreground dark:text-foreground border-r border-border dark:border-card-border">Value</th>
+                  <th className="px-4 py-2 text-left font-semibold text-foreground dark:text-foreground">Description</th>
                 </tr>
               </thead>
               <tbody>
@@ -141,10 +138,10 @@ export default function DataBrowserPanelNew({
                   </tr>
                 ) : (
                   tableData.map((row) => (
-                    <tr key={row.id} className="border-b border-[#E8F4F5] dark:border-border hover:bg-[#F5FAFA] dark:hover:bg-card/30">
-                      <td className="px-4 py-2 text-[#2C5F66] dark:text-foreground">{row.name}</td>
-                      <td className="px-4 py-2 text-[#2C5F66] dark:text-foreground">{row.value}</td>
-                      <td className="px-4 py-2 text-[#2C5F66] dark:text-foreground">{row.description}</td>
+                    <tr key={row.id} className="border-b border-border dark:border-border hover:bg-accent dark:hover:bg-card/30">
+                      <td className="px-4 py-2 text-foreground dark:text-foreground">{row.name}</td>
+                      <td className="px-4 py-2 text-foreground dark:text-foreground">{row.value}</td>
+                      <td className="px-4 py-2 text-foreground dark:text-foreground">{row.description}</td>
                     </tr>
                   ))
                 )}

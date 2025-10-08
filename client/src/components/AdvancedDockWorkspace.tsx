@@ -5,6 +5,7 @@ import WellsPanelNew from "./WellsPanelNew";
 import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
 import FeedbackPanelNew from "./FeedbackPanelNew";
+import WellLogPlot from "./WellLogPlot";
 import { Resizable } from "re-resizable";
 
 type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback";
@@ -258,7 +259,7 @@ export default function AdvancedDockWorkspace() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className="h-screen w-full flex flex-col bg-[#D0E8EA] dark:bg-background overflow-hidden">
+      <div className="h-screen w-full flex flex-col bg-[#F0F4F5] dark:bg-background overflow-hidden">
         <MenuBar
           onTogglePanel={togglePanel}
           visiblePanels={visiblePanels}
@@ -299,11 +300,11 @@ export default function AdvancedDockWorkspace() {
           <div className="flex-1 flex flex-col gap-1">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
               <div className="flex-1 flex gap-1">
-                <div className="flex-1 bg-[#C8E6E9] dark:bg-card/50 border border-card-border rounded flex items-center justify-center text-muted-foreground">
+                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
                   {centerPanels.length > 0 ? (
                     centerPanels.map((panelId) => renderPanel(panelId, true))
                   ) : (
-                    "Central Workspace"
+                    <WellLogPlot />
                   )}
                 </div>
 
@@ -327,8 +328,8 @@ export default function AdvancedDockWorkspace() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 bg-[#C8E6E9] dark:bg-card/50 border border-card-border rounded flex items-center justify-center text-muted-foreground">
-                Central Workspace
+              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
+                <WellLogPlot />
               </div>
             )}
 
