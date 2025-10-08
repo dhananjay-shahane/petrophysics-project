@@ -11,9 +11,14 @@ export default function WellLogPlot() {
 
     const updateDimensions = () => {
       const rect = container.getBoundingClientRect();
+      const maxWidth = 2400;
+      const maxHeight = 1600;
+      const minWidth = 600;
+      const minHeight = 400;
+      
       setDimensions({
-        width: Math.max(800, rect.width - 32),
-        height: Math.max(600, rect.height - 32),
+        width: Math.min(maxWidth, Math.max(minWidth, rect.width - 32)),
+        height: Math.min(maxHeight, Math.max(minHeight, rect.height - 32)),
       });
     };
 
@@ -163,12 +168,13 @@ export default function WellLogPlot() {
   }, [dimensions]);
 
   return (
-    <div ref={containerRef} className="w-full h-full overflow-auto bg-white p-4">
+    <div ref={containerRef} className="w-full h-full overflow-auto bg-white p-4 max-w-[2400px] max-h-[1600px]">
       <canvas
         ref={canvasRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="border border-gray-300"
+        className="border border-gray-300 w-full h-full"
+        style={{ maxWidth: dimensions.width, maxHeight: dimensions.height }}
         data-testid="canvas-welllog"
       />
     </div>
