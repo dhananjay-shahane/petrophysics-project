@@ -16,31 +16,19 @@ export default function WellLogPlot() {
       const minWidth = 600;
       const minHeight = 400;
       
-      const newWidth = Math.min(maxWidth, Math.max(minWidth, rect.width - 32));
-      const newHeight = Math.min(maxHeight, Math.max(minHeight, rect.height - 32));
-      
-      setDimensions(prev => {
-        if (prev.width !== newWidth || prev.height !== newHeight) {
-          return { width: newWidth, height: newHeight };
-        }
-        return prev;
+      setDimensions({
+        width: Math.min(maxWidth, Math.max(minWidth, rect.width - 32)),
+        height: Math.min(maxHeight, Math.max(minHeight, rect.height - 32)),
       });
     };
 
-    // Initial update
-    requestAnimationFrame(updateDimensions);
+    updateDimensions();
 
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateDimensions);
-    });
+    const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(container);
-
-    // Also listen to window resize as backup
-    window.addEventListener('resize', updateDimensions);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener('resize', updateDimensions);
     };
   }, []);
 
@@ -180,12 +168,13 @@ export default function WellLogPlot() {
   }, [dimensions]);
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-white p-4 flex items-center justify-center">
+    <div ref={containerRef} className="w-full h-full overflow-auto bg-white p-4 max-w-[2400px] max-h-[1600px]">
       <canvas
         ref={canvasRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="border border-gray-300"
+        className="border border-gray-300 w-full h-full"
+        style={{ maxWidth: dimensions.width, maxHeight: dimensions.height }}
         data-testid="canvas-welllog"
       />
     </div>
