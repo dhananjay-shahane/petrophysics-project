@@ -14,41 +14,41 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 180 30% 92%;
+  --background: 180 35% 90%;
 
-  --foreground: 180 45% 20%;
+  --foreground: 180 50% 15%;
 
-  --border: 180 25% 75%;
+  --border: 180 30% 70%;
 
-  --card: 0 0% 100%;
+  --card: 180 20% 98%;
 
-  --card-foreground: 180 45% 20%;
+  --card-foreground: 180 50% 15%;
 
-  --card-border: 180 25% 80%;
+  --card-border: 180 25% 75%;
 
-  --sidebar: 180 30% 90%;
+  --sidebar: 180 35% 88%;
 
-  --sidebar-foreground: 180 45% 20%;
+  --sidebar-foreground: 180 50% 15%;
 
-  --sidebar-border: 180 25% 75%;
+  --sidebar-border: 180 30% 70%;
 
-  --sidebar-primary: 180 50% 50%;
+  --sidebar-primary: 180 60% 45%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 180 30% 85%;
+  --sidebar-accent: 180 35% 82%;
 
-  --sidebar-accent-foreground: 180 45% 20%;
+  --sidebar-accent-foreground: 180 50% 15%;
 
-  --sidebar-ring: 180 55% 55%;
+  --sidebar-ring: 180 65% 50%;
 
-  --popover: 0 0% 100%;
+  --popover: 180 20% 98%;
 
-  --popover-foreground: 180 45% 20%;
+  --popover-foreground: 180 50% 15%;
 
-  --popover-border: 180 25% 80%;
+  --popover-border: 180 25% 75%;
 
-  --primary: 180 50% 50%;
+  --primary: 180 60% 45%;
 
   --primary-foreground: 0 0% 100%;
 
@@ -132,41 +132,41 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 180 25% 12%;
+  --background: 180 30% 10%;
 
-  --foreground: 180 15% 90%;
+  --foreground: 180 20% 92%;
 
-  --border: 180 20% 25%;
+  --border: 180 25% 22%;
 
-  --card: 180 20% 16%;
+  --card: 180 25% 14%;
 
-  --card-foreground: 180 15% 90%;
+  --card-foreground: 180 20% 92%;
 
-  --card-border: 180 15% 22%;
+  --card-border: 180 20% 20%;
 
-  --sidebar: 180 20% 14%;
+  --sidebar: 180 25% 12%;
 
-  --sidebar-foreground: 180 15% 90%;
+  --sidebar-foreground: 180 20% 92%;
 
-  --sidebar-border: 180 15% 20%;
+  --sidebar-border: 180 20% 18%;
 
-  --sidebar-primary: 180 55% 50%;
+  --sidebar-primary: 180 65% 50%;
 
-  --sidebar-primary-foreground: 180 25% 12%;
+  --sidebar-primary-foreground: 180 30% 10%;
 
-  --sidebar-accent: 180 20% 20%;
+  --sidebar-accent: 180 25% 18%;
 
-  --sidebar-accent-foreground: 180 15% 90%;
+  --sidebar-accent-foreground: 180 20% 92%;
 
-  --sidebar-ring: 180 60% 55%;
+  --sidebar-ring: 180 70% 55%;
 
-  --popover: 180 20% 18%;
+  --popover: 180 25% 16%;
 
-  --popover-foreground: 180 15% 90%;
+  --popover-foreground: 180 20% 92%;
 
-  --popover-border: 180 15% 26%;
+  --popover-border: 180 20% 24%;
 
-  --primary: 180 55% 50%;
+  --primary: 180 65% 50%;
 
   --primary-foreground: 180 25% 12%;
 
