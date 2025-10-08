@@ -8,6 +8,8 @@ import FeedbackPanelNew from "./FeedbackPanelNew";
 interface PanelState {
   visible: boolean;
   floating: boolean;
+  position?: { x: number; y: number };
+  size?: { width: number; height: number };
 }
 
 export default function DockWorkspace() {
@@ -52,17 +54,45 @@ export default function DockWorkspace() {
     }));
   };
 
+  const floatPanel = (panelId: string) => {
+    setPanels((prev) => ({
+      ...prev,
+      [panelId]: { ...prev[panelId], floating: true },
+    }));
+  };
+
   const saveLayout = () => {
-    localStorage.setItem("dockLayout", JSON.stringify(panels));
-    console.log("Layout saved!");
+    const layoutData = {
+      panels,
+      theme,
+    };
+    localStorage.setItem("dockLayout", JSON.stringify(layoutData));
+    console.log("Layout and theme saved!");
   };
 
   const loadLayout = () => {
     const saved = localStorage.getItem("dockLayout");
     if (saved) {
-      setPanels(JSON.parse(saved));
-      console.log("Layout loaded!");
+      const layoutData = JSON.parse(saved);
+      if (layoutData.panels) {
+        setPanels(layoutData.panels);
+      }
+      if (layoutData.theme) {
+        setTheme(layoutData.theme);
+      }
+      console.log("Layout and theme loaded!");
     }
+  };
+
+  const updatePanelGeometry = (
+    panelId: string,
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => {
+    setPanels((prev) => ({
+      ...prev,
+      [panelId]: { ...prev[panelId], position, size },
+    }));
   };
 
   const toggleTheme = () => {
@@ -90,12 +120,18 @@ export default function DockWorkspace() {
         <div className="w-48 flex flex-col gap-1">
           {panels.wells.visible && !panels.wells.floating && (
             <div className="flex-1">
-              <WellsPanelNew onClose={() => closePanel("wells")} />
+              <WellsPanelNew 
+                onClose={() => closePanel("wells")}
+                onFloat={() => floatPanel("wells")}
+              />
             </div>
           )}
           {panels.zonation.visible && !panels.zonation.floating && (
             <div className="flex-1">
-              <ZonationPanelNew onClose={() => closePanel("zonation")} />
+              <ZonationPanelNew 
+                onClose={() => closePanel("zonation")}
+                onFloat={() => floatPanel("zonation")}
+              />
             </div>
           )}
         </div>
@@ -103,12 +139,18 @@ export default function DockWorkspace() {
         <div className="flex-1 flex flex-col gap-1">
           {panels.dataBrowser.visible && !panels.dataBrowser.floating && (
             <div className="flex-[2]">
-              <DataBrowserPanelNew onClose={() => closePanel("dataBrowser")} />
+              <DataBrowserPanelNew 
+                onClose={() => closePanel("dataBrowser")}
+                onFloat={() => floatPanel("dataBrowser")}
+              />
             </div>
           )}
           {panels.feedback.visible && !panels.feedback.floating && (
             <div className="flex-1">
-              <FeedbackPanelNew onClose={() => closePanel("feedback")} />
+              <FeedbackPanelNew 
+                onClose={() => closePanel("feedback")}
+                onFloat={() => floatPanel("feedback")}
+              />
             </div>
           )}
         </div>
@@ -118,6 +160,9 @@ export default function DockWorkspace() {
             onClose={() => closePanel("wells")}
             isFloating={true}
             onDock={() => dockPanel("wells")}
+            savedPosition={panels.wells.position}
+            savedSize={panels.wells.size}
+            onGeometryChange={(pos, size) => updatePanelGeometry("wells", pos, size)}
           />
         )}
         {panels.zonation.visible && panels.zonation.floating && (
@@ -125,6 +170,9 @@ export default function DockWorkspace() {
             onClose={() => closePanel("zonation")}
             isFloating={true}
             onDock={() => dockPanel("zonation")}
+            savedPosition={panels.zonation.position}
+            savedSize={panels.zonation.size}
+            onGeometryChange={(pos, size) => updatePanelGeometry("zonation", pos, size)}
           />
         )}
         {panels.dataBrowser.visible && panels.dataBrowser.floating && (
@@ -132,6 +180,11 @@ export default function DockWorkspace() {
             onClose={() => closePanel("dataBrowser")}
             isFloating={true}
             onDock={() => dockPanel("dataBrowser")}
+            savedPosition={panels.dataBrowser.position}
+            savedSize={panels.dataBrowser.size}
+            onGeometryChange={(pos, size) =>
+              updatePanelGeometry("dataBrowser", pos, size)
+            }
           />
         )}
         {panels.feedback.visible && panels.feedback.floating && (
@@ -139,6 +192,9 @@ export default function DockWorkspace() {
             onClose={() => closePanel("feedback")}
             isFloating={true}
             onDock={() => dockPanel("feedback")}
+            savedPosition={panels.feedback.position}
+            savedSize={panels.feedback.size}
+            onGeometryChange={(pos, size) => updatePanelGeometry("feedback", pos, size)}
           />
         )}
       </div>

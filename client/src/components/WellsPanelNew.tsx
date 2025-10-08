@@ -4,11 +4,19 @@ import { Search } from "lucide-react";
 export default function WellsPanelNew({ 
   onClose, 
   isFloating,
-  onDock 
+  onDock,
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange
 }: { 
   onClose?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
   const items = ["View All", "0 to 100m", "Derivative Zone 1"];
 
@@ -19,6 +27,10 @@ export default function WellsPanelNew({
       onClose={onClose}
       isFloating={isFloating}
       onDock={onDock}
+      onFloat={onFloat}
+      savedPosition={savedPosition}
+      savedSize={savedSize}
+      onGeometryChange={onGeometryChange}
     >
       <div className="p-2">
         <div className="relative mb-2">

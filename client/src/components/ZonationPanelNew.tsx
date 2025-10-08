@@ -4,11 +4,19 @@ import { Button } from "@/components/ui/button";
 export default function ZonationPanelNew({ 
   onClose, 
   isFloating,
-  onDock 
+  onDock,
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange
 }: { 
   onClose?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
   return (
     <DockablePanel 
@@ -17,6 +25,10 @@ export default function ZonationPanelNew({
       onClose={onClose}
       isFloating={isFloating}
       onDock={onDock}
+      onFloat={onFloat}
+      savedPosition={savedPosition}
+      savedSize={savedSize}
+      onGeometryChange={onGeometryChange}
     >
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 p-2 border-b border-border">

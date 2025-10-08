@@ -1,4 +1,4 @@
-import { X, Minus, Square } from "lucide-react";
+import { X, Minus, Square, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReactNode, useState } from "react";
 import { Rnd } from "react-rnd";
@@ -12,6 +12,13 @@ interface DockablePanelProps {
   defaultPosition?: { x: number; y: number };
   defaultSize?: { width: number; height: number };
   onDock?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => void;
 }
 
 export default function DockablePanel({
@@ -23,23 +30,41 @@ export default function DockablePanel({
   defaultPosition = { x: 100, y: 100 },
   defaultSize = { width: 400, height: 300 },
   onDock,
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange,
 }: DockablePanelProps) {
   const [isMinimized, setIsMinimized] = useState(false);
 
   if (isFloating) {
+    const position = savedPosition || defaultPosition;
+    const size = savedSize || defaultSize;
+
     return (
       <Rnd
-        default={{
-          x: defaultPosition.x,
-          y: defaultPosition.y,
-          width: defaultSize.width,
-          height: defaultSize.height,
-        }}
+        position={{ x: position.x, y: position.y }}
+        size={{ width: size.width, height: size.height }}
         minWidth={280}
         minHeight={200}
         bounds="parent"
         dragHandleClassName="drag-handle"
         className="absolute z-50"
+        onDragStop={(e, d) => {
+          onGeometryChange?.(
+            { x: d.x, y: d.y },
+            size
+          );
+        }}
+        onResizeStop={(e, direction, ref, delta, newPosition) => {
+          onGeometryChange?.(
+            newPosition,
+            {
+              width: parseInt(ref.style.width),
+              height: parseInt(ref.style.height),
+            }
+          );
+        }}
       >
         <div className="flex flex-col h-full bg-card border-2 border-card-border shadow-xl rounded">
           <div className="drag-handle flex items-center justify-between h-10 px-3 py-2 bg-[#B8D8DC] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border cursor-move">
@@ -100,6 +125,17 @@ export default function DockablePanel({
           >
             <Minus className="w-3.5 h-3.5" />
           </Button>
+          {onFloat && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={onFloat}
+              data-testid={`button-float-${id}`}
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant="ghost"

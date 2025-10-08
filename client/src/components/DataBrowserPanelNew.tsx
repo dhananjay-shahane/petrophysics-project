@@ -6,14 +6,18 @@ export default function DataBrowserPanelNew({
   onClose, 
   isFloating,
   onDock,
-  onMinimize,
-  onMaximize 
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange
 }: { 
   onClose?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
-  onMinimize?: () => void;
-  onMaximize?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
   const [activeTab, setActiveTab] = useState("logs");
 
@@ -30,6 +34,10 @@ export default function DataBrowserPanelNew({
       onClose={onClose}
       isFloating={isFloating}
       onDock={onDock}
+      onFloat={onFloat}
+      savedPosition={savedPosition}
+      savedSize={savedSize}
+      onGeometryChange={onGeometryChange}
       defaultSize={{ width: 600, height: 400 }}
     >
       <div className="flex flex-col h-full">

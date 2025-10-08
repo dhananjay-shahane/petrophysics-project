@@ -4,11 +4,19 @@ import { Button } from "@/components/ui/button";
 export default function FeedbackPanelNew({ 
   onClose, 
   isFloating,
-  onDock 
+  onDock,
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange
 }: { 
   onClose?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
   return (
     <DockablePanel 
@@ -17,6 +25,10 @@ export default function FeedbackPanelNew({
       onClose={onClose}
       isFloating={isFloating}
       onDock={onDock}
+      onFloat={onFloat}
+      savedPosition={savedPosition}
+      savedSize={savedSize}
+      onGeometryChange={onGeometryChange}
     >
       <div className="flex flex-col h-full p-3 gap-3">
         <div className="flex gap-2">
