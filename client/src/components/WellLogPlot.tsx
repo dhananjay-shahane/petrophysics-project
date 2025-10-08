@@ -1,7 +1,31 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function WellLogPlot() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateDimensions = () => {
+      const rect = container.getBoundingClientRect();
+      setDimensions({
+        width: Math.max(800, rect.width - 32),
+        height: Math.max(600, rect.height - 32),
+      });
+    };
+
+    updateDimensions();
+
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -10,8 +34,8 @@ export default function WellLogPlot() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = dimensions.width;
+    const height = dimensions.height;
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
@@ -33,9 +57,9 @@ export default function WellLogPlot() {
       ctx.stroke();
     }
 
-    const trackWidth = 120;
+    const trackWidth = Math.max(100, width / 12);
     const numTracks = 8;
-    const startX = 100;
+    const startX = Math.max(80, trackWidth * 0.8);
 
     for (let i = 0; i < numTracks; i++) {
       const x = startX + i * trackWidth;
@@ -70,7 +94,7 @@ export default function WellLogPlot() {
       ctx.beginPath();
 
       for (let y = 30; y < height; y += 2) {
-        const value = Math.sin((y + offset) * frequency) * amplitude;
+        const value = Math.sin((y + offset) * frequency) * (amplitude * trackWidth / 120);
         const px = centerX + value;
         if (y === 30) {
           ctx.moveTo(px, y);
@@ -86,7 +110,7 @@ export default function WellLogPlot() {
         ctx.beginPath();
         ctx.moveTo(x, 30);
         for (let y = 30; y < height; y += 2) {
-          const value = Math.sin((y + offset) * frequency) * amplitude;
+          const value = Math.sin((y + offset) * frequency) * (amplitude * trackWidth / 120);
           const px = centerX + value;
           ctx.lineTo(px, y);
         }
@@ -110,14 +134,15 @@ export default function WellLogPlot() {
     drawWaveform(6, "#10b981", 32, 0.052, 200);
     drawWaveform(7, "#ef4444", 35, 0.038, 150, "#ef4444");
 
+    const zonationScale = height / 800;
     const zonations = [
-      { y: 150, label: "CLEAR FORK" },
-      { y: 280, label: "SPRABERRY" },
-      { y: 380, label: "Mid_SPRB" },
-      { y: 480, label: "WOLFCAMP B" },
-      { y: 550, label: "WOLFCAMP C" },
-      { y: 650, label: "WOLFCAMP D" },
-      { y: 720, label: "Base" },
+      { y: 150 * zonationScale, label: "CLEAR FORK" },
+      { y: 280 * zonationScale, label: "SPRABERRY" },
+      { y: 380 * zonationScale, label: "Mid_SPRB" },
+      { y: 480 * zonationScale, label: "WOLFCAMP B" },
+      { y: 550 * zonationScale, label: "WOLFCAMP C" },
+      { y: 650 * zonationScale, label: "WOLFCAMP D" },
+      { y: 720 * zonationScale, label: "Base" },
     ];
 
     ctx.strokeStyle = "#000000";
@@ -135,15 +160,15 @@ export default function WellLogPlot() {
       ctx.fillText(zone.label, startX + numTracks * trackWidth + 80, zone.y + 4);
     });
 
-  }, []);
+  }, [dimensions]);
 
   return (
-    <div className="w-full h-full overflow-auto bg-white dark:bg-card p-4">
+    <div ref={containerRef} className="w-full h-full overflow-auto bg-white p-4">
       <canvas
         ref={canvasRef}
-        width={1200}
-        height={800}
-        className="border border-border"
+        width={dimensions.width}
+        height={dimensions.height}
+        className="border border-gray-300"
         data-testid="canvas-welllog"
       />
     </div>
