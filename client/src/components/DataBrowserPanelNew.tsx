@@ -29,7 +29,9 @@ export default function DataBrowserPanelNew({
   ];
 
   const handleDelete = () => {
-    console.log("Delete clicked");
+    if (tableData.length > 0) {
+      setTableData(tableData.slice(0, -1));
+    }
   };
 
   const handleAdd = () => {
@@ -43,7 +45,6 @@ export default function DataBrowserPanelNew({
   };
 
   const handleExport = () => {
-    console.log("Export clicked");
     const dataStr = JSON.stringify(tableData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -74,8 +75,8 @@ export default function DataBrowserPanelNew({
           </div>
         </div>
         
-        <div className="flex-1 flex flex-col">
-          <div className="flex h-10 bg-[#B8D8DC] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex h-10 bg-[#B8D8DC] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border shrink-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -85,18 +86,20 @@ export default function DataBrowserPanelNew({
                     : "text-[#2C5F66] dark:text-muted-foreground hover:bg-[#A0C8CC]/30"
                 }`}
                 onClick={() => setActiveTab(tab.id)}
+                data-testid={`tab-${tab.id}`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="flex gap-2 p-2 bg-[#E8F4F5] dark:bg-card/30 border-b border-[#A0C8CC] dark:border-border">
+          <div className="flex gap-2 p-2 bg-[#E8F4F5] dark:bg-card/30 border-b border-[#A0C8CC] dark:border-border shrink-0">
             <Button 
               size="sm" 
               className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleDelete}
+              data-testid="button-delete"
             >
               Delete
             </Button>
@@ -105,6 +108,7 @@ export default function DataBrowserPanelNew({
               className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleAdd}
+              data-testid="button-add"
             >
               Add
             </Button>
@@ -113,12 +117,13 @@ export default function DataBrowserPanelNew({
               className="bg-[#B8D8DC] hover:bg-[#A0C8CC] text-[#2C5F66] dark:text-foreground border-[#A0C8CC]" 
               variant="outline"
               onClick={handleExport}
+              data-testid="button-export"
             >
               Export
             </Button>
           </div>
 
-          <div className="flex-1 overflow-auto bg-white dark:bg-background">
+          <div className="flex-1 overflow-auto bg-white dark:bg-background min-h-0">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-[#E8F4F5] dark:bg-card border-b border-[#A0C8CC] dark:border-card-border">
                 <tr className="h-10">
