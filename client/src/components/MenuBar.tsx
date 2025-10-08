@@ -165,6 +165,11 @@ export default function MenuBar({
                 {!visiblePanels.has("feedback") && <span className="w-4 mr-2" />}
                 Toggle Feedback
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTogglePanel("wellLogPlot")} data-testid="menu-toggle-welllogplot">
+                {visiblePanels.has("wellLogPlot") && <Check className="w-4 h-4 mr-2" />}
+                {!visiblePanels.has("wellLogPlot") && <span className="w-4 mr-2" />}
+                Toggle Well Log Plot
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onSaveLayout} data-testid="menu-save-layout">
                 Save Layout

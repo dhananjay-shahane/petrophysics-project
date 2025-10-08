@@ -5,10 +5,10 @@ import WellsPanelNew from "./WellsPanelNew";
 import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
 import FeedbackPanelNew from "./FeedbackPanelNew";
-import WellLogPlot from "./WellLogPlot";
+import WellLogPlotPanel from "./WellLogPlotPanel";
 import { Resizable } from "re-resizable";
 
-type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback";
+type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot";
 
 interface PanelState {
   visible: boolean;
@@ -29,6 +29,7 @@ const PANEL_COMPONENTS: Record<PanelId, any> = {
   zonation: ZonationPanelNew,
   dataBrowser: DataBrowserPanelNew,
   feedback: FeedbackPanelNew,
+  wellLogPlot: WellLogPlotPanel,
 };
 
 const PANEL_TITLES: Record<PanelId, string> = {
@@ -36,6 +37,7 @@ const PANEL_TITLES: Record<PanelId, string> = {
   zonation: "Zonation",
   dataBrowser: "Data Browser",
   feedback: "Feedback",
+  wellLogPlot: "Well Log Plot",
 };
 
 function DraggableWrapper({ id, children }: { id: string; children: React.ReactNode }) {
@@ -97,6 +99,7 @@ export default function AdvancedDockWorkspace() {
     zonation: { visible: true, floating: false, dockZone: "left" },
     dataBrowser: { visible: true, floating: false, dockZone: "right" },
     feedback: { visible: true, floating: false, dockZone: "bottom" },
+    wellLogPlot: { visible: true, floating: false, dockZone: "center" },
   });
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -304,7 +307,9 @@ export default function AdvancedDockWorkspace() {
                   {centerPanels.length > 0 ? (
                     centerPanels.map((panelId) => renderPanel(panelId, true))
                   ) : (
-                    <WellLogPlot />
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      Central Workspace - Drag panels here
+                    </div>
                   )}
                 </div>
 
@@ -328,8 +333,8 @@ export default function AdvancedDockWorkspace() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
-                <WellLogPlot />
+              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden flex items-center justify-center text-muted-foreground">
+                Central Workspace - Drag panels here
               </div>
             )}
 
