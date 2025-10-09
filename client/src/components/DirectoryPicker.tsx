@@ -95,9 +95,9 @@ export default function DirectoryPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Choose Directory</DialogTitle>
+          <DialogTitle>Choose Directory Path</DialogTitle>
           <DialogDescription>
-            Select the directory where you want to create your project
+            Browse and select the directory where you want to create your project
           </DialogDescription>
         </DialogHeader>
 
@@ -108,6 +108,7 @@ export default function DirectoryPicker({
               size="sm"
               onClick={handleGoHome}
               disabled={isLoading}
+              title="Go to workspace"
             >
               <Home className="w-4 h-4" />
             </Button>
@@ -116,6 +117,7 @@ export default function DirectoryPicker({
               size="sm"
               onClick={handleGoUp}
               disabled={isLoading || !parentPath || currentPath === parentPath}
+              title="Go up one level"
             >
               <ArrowUp className="w-4 h-4" />
             </Button>
@@ -162,7 +164,7 @@ export default function DirectoryPicker({
             Cancel
           </Button>
           <Button onClick={handleConfirm} disabled={isLoading}>
-            Select This Directory
+            Select This Path
           </Button>
         </DialogFooter>
       </DialogContent>

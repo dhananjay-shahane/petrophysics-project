@@ -155,7 +155,7 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
                 value={projectPath}
                 onChange={(e) => setProjectPath(e.target.value)}
                 disabled={isCreating}
-                className="font-mono text-sm"
+                className="font-mono text-sm flex-1"
               />
               <Button
                 type="button"
@@ -163,7 +163,7 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
                 size="icon"
                 onClick={handleChoosePath}
                 disabled={isCreating}
-                title="Choose Path"
+                title="Choose file path"
               >
                 <FolderOpen className="w-4 h-4" />
               </Button>
