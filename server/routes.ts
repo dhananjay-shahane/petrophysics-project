@@ -11,6 +11,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
+  app.get("/api/directories/list", async (req, res) => {
+    try {
+      const dirPath = req.query.path as string || process.cwd();
+      
+      const resolvedPath = path.resolve(dirPath);
+      
+      const stats = await fs.stat(resolvedPath);
+      if (!stats.isDirectory()) {
+        return res.status(400).json({ error: "Path is not a directory" });
+      }
+
+      const items = await fs.readdir(resolvedPath, { withFileTypes: true });
+      
+      const directories = items
+        .filter(item => item.isDirectory() && !item.name.startsWith('.'))
+        .map(item => ({
+          name: item.name,
+          path: path.join(resolvedPath, item.name),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      res.json({
+        currentPath: resolvedPath,
+        parentPath: path.dirname(resolvedPath),
+        directories,
+      });
+    } catch (error) {
+      console.error("Error listing directories:", error);
+      res.status(500).json({ error: "Failed to list directories" });
+    }
+  });
+
   app.post("/api/projects/create", async (req, res) => {
     try {
       const { name, path: customPath } = req.body;
