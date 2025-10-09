@@ -20,14 +20,18 @@ interface NewProjectDialogProps {
 
 export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
+  const [projectPath, setProjectPath] = useState("/home/runner/workspace/projects");
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
-  const getProjectPath = () => {
-    if (projectName.trim()) {
-      return `/home/runner/workspace/projects/${projectName.trim()}`;
+  const getFullProjectPath = () => {
+    if (projectName.trim() && projectPath.trim()) {
+      return `${projectPath.trim()}/${projectName.trim()}`;
     }
-    return "/home/runner/workspace/projects/[project-name]";
+    if (projectPath.trim()) {
+      return `${projectPath.trim()}/[project-name]`;
+    }
+    return "/path/to/project/[project-name]";
   };
 
   const handleCreateProject = async () => {
@@ -35,6 +39,15 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
       toast({
         title: "Error",
         description: "Please enter a project name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!projectPath.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a project path",
         variant: "destructive",
       });
       return;
@@ -59,6 +72,7 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
         },
         body: JSON.stringify({
           name: projectName,
+          path: projectPath,
         }),
       });
 
@@ -90,8 +104,16 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
   const handleDialogClose = (open: boolean) => {
     if (!open && !isCreating) {
       setProjectName("");
+      setProjectPath("/home/runner/workspace/projects");
     }
     onOpenChange(open);
+  };
+
+  const handleChoosePath = () => {
+    const path = prompt("Enter the full path where you want to create the project:", projectPath);
+    if (path !== null && path.trim()) {
+      setProjectPath(path.trim());
+    }
   };
 
   return (
@@ -123,18 +145,28 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
 
           <div className="grid gap-2">
             <Label htmlFor="project-path">Project Path</Label>
-            <div className="flex gap-2 items-center">
-              <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex gap-2">
               <Input
                 id="project-path"
-                value={getProjectPath()}
-                readOnly
+                placeholder="Enter or choose project path"
+                value={projectPath}
+                onChange={(e) => setProjectPath(e.target.value)}
                 disabled={isCreating}
                 className="font-mono text-sm"
               />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleChoosePath}
+                disabled={isCreating}
+                title="Choose Path"
+              >
+                <FolderOpen className="w-4 h-4" />
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              This is where your project folders will be created
+              Full path: <span className="font-mono">{getFullProjectPath()}</span>
             </p>
           </div>
         </div>
