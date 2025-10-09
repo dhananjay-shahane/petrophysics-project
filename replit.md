@@ -67,10 +67,21 @@ A professional web-based application for managing and visualizing well log data 
 - Customizable plot panels with zoom and pan capabilities
 
 ### Data Management
+- **ProjectInfoBar**: Top bar displaying project name, file path, and well count with visual icons
+- **CSV/LAS File Loading**: 
+  - Drag & drop or file selection in Feedback panel
+  - Case-insensitive file extension validation (.CSV, .csv, .LAS, .las)
+  - Automatic parsing and population of Wells panel
+  - CSV parser: Extracts headers and rows as structured data
+  - LAS parser: Parses "MNEM.UNIT VALUE : DESCRIPTION" format with wellInfo dictionary
+- **Project Persistence**:
+  - Save project data to database folder as JSON (includes wells, path, timestamps)
+  - Load saved projects via dialog with project list
+  - Database folder tracked in version control
 - Data browser with tabbed interface (Logs, Log Values, Constants)
 - Project creation with standard folder structure
 - Directory picker for navigating file systems
-- Export functionality for data
+- Project folder selection from Open menu
 
 ### User Interface
 - Advanced docking workspace with draggable and resizable panels
@@ -102,11 +113,23 @@ Standard project structure created with folders:
 ### Directory Management
 - `GET /api/directories/list?path={path}` - List directories at specified path
   - Returns: currentPath, parentPath, and array of directories
+  - Gracefully handles missing directories (returns parent path with empty directories array)
 
 ### Project Management
 - `POST /api/projects/create` - Create new project with standard folder structure
   - Body: `{ name: string, path: string }`
   - Returns: success status, project path, and created folders
+
+- `POST /api/projects/save` - Save project data to database folder as JSON
+  - Body: `{ projectData: ProjectData }`
+  - Saves to: database/ProjectName_timestamp.json
+  - Returns: success status, filePath, fileName
+
+- `GET /api/projects/load/:fileName` - Load project from database folder
+  - Returns: success status and projectData object
+
+- `GET /api/projects/list` - List all saved projects
+  - Returns: success status and array of project metadata (fileName, name, path, wellCount, createdAt, updatedAt)
 
 ## Database Schema
 
@@ -184,6 +207,29 @@ In development mode, the Express server uses Vite's middleware mode to:
 None specified yet.
 
 ## Recent Changes
+- **October 9, 2025 (Latest Session - Complete Project Persistence)**:
+  - **ProjectInfoBar Component**: Created dedicated top bar component
+    - Displays project name, file path, and well count with folder/file icons
+    - Replaced Project Info dropdown menu in MenuBar
+  - **CSV/LAS File Loading System**: Complete implementation
+    - Case-insensitive file validation (.CSV, .csv, .LAS, .las)
+    - Drag & drop and file selection in Feedback panel
+    - "Load Log" button triggers parsing and updates Wells panel
+    - CSV Parser: Extracts headers and rows as structured data
+    - LAS Parser: Correctly parses "MNEM.UNIT VALUE : DESCRIPTION" format
+    - Error handling with toast notifications
+  - **Project Folder Selection**: Open menu option to select project folder
+    - Auto-updates project name and path from selected folder
+  - **Complete Server-Side Persistence**: End-to-end save/load workflow
+    - Backend API endpoints for save, load, and list projects
+    - Projects saved to database/ folder as JSON with timestamps
+    - ProjectListDialog for browsing and loading saved projects
+    - Full state hydration including wells data
+    - Toast notifications for save/load success/error
+    - Database folder tracked in version control (.gitignore updated)
+  - **API Improvements**: 
+    - Fixed directory listing to gracefully handle ENOENT errors
+    - Returns parent path with empty directories array when path doesn't exist
 - **October 9, 2025 (Fresh Import)**:
   - Installed all npm dependencies (508 packages)
   - Fixed server configuration to use port 5000 and bind to 0.0.0.0
@@ -192,29 +238,9 @@ None specified yet.
   - Set up deployment configuration (VM target with build and run commands)
   - Verified application runs successfully with all panels rendering correctly
 - **October 9, 2025 (Previous session)**: 
-  - **Project Info Menu**: Added new menu in MenuBar displaying project details
-    - Shows current project file path
-    - Displays well count from Wells panel
-    - Accessible from top menu bar
-  - **CSV File Selector in Feedback Panel**: Replaced textarea with drag & drop CSV selector
-    - Drag and drop CSV files directly into the panel
-    - Click "Select CSV" button to browse files
-    - Shows list of selected files with size and remove option
-    - Visual feedback during drag operations
-  - **Window Hover/Focus Effects**: Added visual feedback for window interaction
-    - Border changes to primary color on hover/focus
-    - Shadow effect appears when window is active
-    - Smooth transitions for better UX
-  - **Window Minimize/Maximize Feature**: Added bottom taskbar for managing minimized windows
-    - Created BottomTaskbar component that displays minimized panels
-    - Updated all panel components to support minimize/maximize functionality
-    - Minimized panels are hidden from layout and shown in sticky bottom bar
-    - Each minimized panel can be restored by clicking the maximize button
-  - Initial import from GitHub
-  - Configured for Replit environment
-  - Updated vite.config.ts with host: "0.0.0.0" and allowedHosts: true
-  - Verified application runs successfully on port 5000
-  - Updated .gitignore to track replit.md
+  - Window Hover/Focus Effects with border and shadow
+  - Window Minimize/Maximize Feature with bottom taskbar
+  - Initial import from GitHub and Replit environment configuration
 
 ## Architecture Decisions
 
