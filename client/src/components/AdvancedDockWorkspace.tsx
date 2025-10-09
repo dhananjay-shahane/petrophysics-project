@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor, DragOverEvent, useDroppable, useDraggable } from "@dnd-kit/core";
 import MenuBar from "./MenuBar";
+import ProjectInfoBar from "./ProjectInfoBar";
+import ProjectListDialog from "./ProjectListDialog";
 import WellsPanelNew from "./WellsPanelNew";
 import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
@@ -8,8 +10,24 @@ import FeedbackPanelNew from "./FeedbackPanelNew";
 import WellLogPlotPanel from "./WellLogPlotPanel";
 import { Resizable } from "re-resizable";
 import BottomTaskbar from "./BottomTaskbar";
+import { useToast } from "@/hooks/use-toast";
 
 type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot";
+
+export interface WellData {
+  id: string;
+  name: string;
+  path: string;
+  data?: any;
+}
+
+export interface ProjectData {
+  name: string;
+  path: string;
+  wells: WellData[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface PanelState {
   visible: boolean;
@@ -96,6 +114,7 @@ function DropZone({ id, zone, isActive }: { id: string; zone: string; isActive: 
 }
 
 export default function AdvancedDockWorkspace() {
+  const { toast } = useToast();
   const [panels, setPanels] = useState<Record<PanelId, PanelState>>({
     wells: { visible: true, floating: false, minimized: false, dockZone: "left" },
     zonation: { visible: true, floating: false, minimized: false, dockZone: "left" },
@@ -106,8 +125,11 @@ export default function AdvancedDockWorkspace() {
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [projectPath, setProjectPath] = useState<string>("");
-  const [wellCount, setWellCount] = useState<number>(0);
+  const [projectName, setProjectName] = useState<string>("");
+  const [wells, setWells] = useState<WellData[]>([]);
+  const [projectCreatedAt, setProjectCreatedAt] = useState<string>("");
   const [draggedPanel, setDraggedPanel] = useState<PanelId | null>(null);
+  const [projectListOpen, setProjectListOpen] = useState(false);
   const [dropZones, setDropZones] = useState<DropZone[]>([
     { id: "left", zone: "left" },
     { id: "right", zone: "right" },
@@ -196,6 +218,72 @@ export default function AdvancedDockWorkspace() {
     }
   };
 
+  const saveProjectData = async () => {
+    const projectData: ProjectData = {
+      name: projectName,
+      path: projectPath,
+      wells: wells,
+      createdAt: projectCreatedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('/api/projects/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ projectData }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save project');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error saving project:', error);
+      throw error;
+    }
+  };
+
+  const loadProjectData = (projectData: ProjectData) => {
+    setProjectName(projectData.name);
+    setProjectPath(projectData.path);
+    setWells(projectData.wells || []);
+    setProjectCreatedAt(projectData.createdAt);
+  };
+
+  const handleProjectFolderSelect = (folderPath: string) => {
+    setProjectPath(folderPath);
+    const folderName = folderPath.split('/').pop() || folderPath;
+    setProjectName(folderName);
+    setProjectCreatedAt(new Date().toISOString());
+  };
+
+  const handleLoadProject = async (fileName: string) => {
+    try {
+      const response = await fetch(`/api/projects/load/${fileName}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to load project');
+      }
+
+      if (result.success && result.projectData) {
+        loadProjectData(result.projectData);
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to load project');
+      }
+    } catch (error) {
+      console.error('Error loading project:', error);
+      throw error;
+    }
+  };
+
   const updatePanelGeometry = (
     panelId: PanelId,
     position: { x: number; y: number },
@@ -244,16 +332,162 @@ export default function AdvancedDockWorkspace() {
       .map(([id]) => id as PanelId);
   };
 
+  const parseCSVFile = async (file: File): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length === 0) {
+            resolve({ headers: [], rows: [] });
+            return;
+          }
+          
+          const headers = lines[0].split(',').map(h => h.trim());
+          const rows = lines.slice(1).map(line => {
+            const values = line.split(',').map(v => v.trim());
+            return headers.reduce((obj, header, index) => {
+              obj[header] = values[index] || '';
+              return obj;
+            }, {} as Record<string, string>);
+          });
+          
+          resolve({ headers, rows, rowCount: rows.length });
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  };
+
+  const parseLASFile = async (file: File): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n');
+          
+          const wellInfo: Record<string, string> = {};
+          let inWellSection = false;
+          
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            if (trimmedLine.startsWith('~W')) {
+              inWellSection = true;
+              continue;
+            }
+            
+            if (trimmedLine.startsWith('~')) {
+              inWellSection = false;
+            }
+            
+            if (inWellSection && trimmedLine && !trimmedLine.startsWith('#')) {
+              const colonIndex = trimmedLine.indexOf(':');
+              if (colonIndex > 0) {
+                const beforeColon = trimmedLine.substring(0, colonIndex).trim();
+                const parts = beforeColon.split(/\s+/).filter(p => p.length > 0);
+                
+                if (parts.length >= 2) {
+                  const mnemonicWithUnit = parts[0];
+                  const mnemonic = mnemonicWithUnit.split('.')[0];
+                  const value = parts[1];
+                  wellInfo[mnemonic] = value;
+                }
+              }
+            }
+          }
+          
+          resolve({ 
+            type: 'LAS',
+            wellInfo,
+            lineCount: lines.length 
+          });
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+  };
+
+  const handleLoadWells = async (files: File[], onError?: (message: string) => void) => {
+    try {
+      const newWells: WellData[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const lowerName = file.name.toLowerCase();
+        let parsedData;
+        
+        try {
+          if (lowerName.endsWith('.csv')) {
+            parsedData = await parseCSVFile(file);
+          } else if (lowerName.endsWith('.las')) {
+            parsedData = await parseLASFile(file);
+          }
+          
+          newWells.push({
+            id: `well-${Date.now()}-${i}`,
+            name: file.name.replace(/\.(csv|las)$/i, ''),
+            path: file.name,
+            data: parsedData
+          });
+        } catch (fileError) {
+          console.error(`Error parsing file ${file.name}:`, fileError);
+          if (onError) {
+            onError(`Failed to parse ${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`);
+          }
+        }
+      }
+      
+      if (newWells.length > 0) {
+        setWells(prev => [...prev, ...newWells]);
+        
+        if (!projectName) {
+          const firstFileName = newWells[0].name;
+          setProjectName(firstFileName);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading wells:', error);
+      if (onError) {
+        onError(`Failed to load wells: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  };
+
   const renderPanel = (panelId: PanelId, makeDraggable: boolean = false) => {
     const PanelComponent = PANEL_COMPONENTS[panelId];
     const panelState = panels[panelId];
+
+    const commonProps = {
+      onClose: () => closePanel(panelId),
+      onMinimize: () => minimizePanel(panelId),
+    };
+
+    const panelSpecificProps = panelId === 'wells' 
+      ? { wells } 
+      : panelId === 'feedback' 
+      ? { onLoadWells: handleLoadWells }
+      : {};
 
     if (panelState.floating) {
       return (
         <PanelComponent
           key={panelId}
-          onClose={() => closePanel(panelId)}
-          onMinimize={() => minimizePanel(panelId)}
+          {...commonProps}
+          {...panelSpecificProps}
           isFloating={true}
           onDock={() => dockPanel(panelId)}
           savedPosition={panelState.position}
@@ -266,8 +500,8 @@ export default function AdvancedDockWorkspace() {
     const panel = (
       <PanelComponent
         key={panelId}
-        onClose={() => closePanel(panelId)}
-        onMinimize={() => minimizePanel(panelId)}
+        {...commonProps}
+        {...panelSpecificProps}
         onFloat={() => floatPanel(panelId)}
       />
     );
@@ -295,8 +529,16 @@ export default function AdvancedDockWorkspace() {
           theme={theme}
           onToggleTheme={toggleTheme}
           projectPath={projectPath}
-          wellCount={wellCount}
-          onProjectPathChange={setProjectPath}
+          wellCount={wells.length}
+          onProjectPathChange={handleProjectFolderSelect}
+          onSaveProject={saveProjectData}
+          onOpenProjectList={() => setProjectListOpen(true)}
+        />
+        
+        <ProjectInfoBar 
+          projectPath={projectPath}
+          projectName={projectName}
+          wellCount={wells.length}
         />
 
         <div className="flex-1 relative flex gap-1 p-1">
@@ -393,6 +635,27 @@ export default function AdvancedDockWorkspace() {
         <BottomTaskbar 
           minimizedPanels={minimizedPanels} 
           onMaximize={(id) => maximizePanel(id as PanelId)} 
+        />
+
+        <ProjectListDialog
+          open={projectListOpen}
+          onOpenChange={setProjectListOpen}
+          onSelectProject={async (fileName) => {
+            try {
+              await handleLoadProject(fileName);
+              toast({
+                title: "Project Loaded",
+                description: "Project data loaded successfully.",
+              });
+            } catch (error) {
+              toast({
+                title: "Load Failed",
+                description: error instanceof Error ? error.message : "Failed to load project",
+                variant: "destructive",
+              });
+              throw error;
+            }
+          }}
         />
       </div>
     </DndContext>

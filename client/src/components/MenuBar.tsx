@@ -24,6 +24,8 @@ interface MenuBarProps {
   projectPath: string;
   wellCount: number;
   onProjectPathChange: (path: string) => void;
+  onSaveProject?: () => Promise<any>;
+  onOpenProjectList?: () => void;
 }
 
 export default function MenuBar({
@@ -36,6 +38,8 @@ export default function MenuBar({
   projectPath,
   wellCount,
   onProjectPathChange,
+  onSaveProject,
+  onOpenProjectList,
 }: MenuBarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -61,28 +65,34 @@ export default function MenuBar({
     fileInputRef.current?.click();
   };
 
-  const handleSave = () => {
-    onSaveLayout();
-    toast({
-      title: "Project Saved",
-      description: "Your project has been saved successfully.",
-    });
+  const handleSave = async () => {
+    if (onSaveProject) {
+      try {
+        await onSaveProject();
+        toast({
+          title: "Project Saved",
+          description: "Your project data has been saved to database folder.",
+        });
+      } catch (error) {
+        toast({
+          title: "Save Failed",
+          description: error instanceof Error ? error.message : "Failed to save project",
+          variant: "destructive",
+        });
+      }
+    } else {
+      onSaveLayout();
+      toast({
+        title: "Layout Saved",
+        description: "Your layout has been saved successfully.",
+      });
+    }
   };
 
   const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        toast({
-          title: "Import Started",
-          description: `Importing ${file.name}...`,
-        });
-      }
-    };
-    input.click();
+    if (onOpenProjectList) {
+      onOpenProjectList();
+    }
   };
 
   const handleExport = () => {
@@ -118,29 +128,6 @@ export default function MenuBar({
             <DropdownMenuSeparator />
             <DropdownMenuItem data-testid="menu-exit">Exit</DropdownMenuItem>
           </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-project-info">
-              Project Info
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[300px]">
-              <div className="px-2 py-2 text-sm">
-                <div className="font-semibold mb-2">Project Details</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">File Path:</span>
-                    <span className="font-medium text-foreground ml-2 truncate max-w-[180px]" title={projectPath || "No project opened"}>
-                      {projectPath || "No project opened"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Well Count:</span>
-                    <span className="font-medium text-foreground">{wellCount}</span>
-                  </div>
-                </div>
-              </div>
-            </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>

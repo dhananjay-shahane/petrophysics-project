@@ -1,7 +1,10 @@
 import DockablePanel from "./DockablePanel";
-import { Search } from "lucide-react";
+import { Search, FileText } from "lucide-react";
+import { useState } from "react";
+import type { WellData } from "./AdvancedDockWorkspace";
 
 export default function WellsPanelNew({
+  wells = [],
   onClose,
   onMinimize,
   isFloating,
@@ -11,6 +14,7 @@ export default function WellsPanelNew({
   savedSize,
   onGeometryChange,
 }: {
+  wells?: WellData[];
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -23,7 +27,11 @@ export default function WellsPanelNew({
     size: { width: number; height: number },
   ) => void;
 }) {
-  const items = ["View All", "0 to 100m", "Derivative Zone 1"];
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredWells = wells.filter(well => 
+    well.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <DockablePanel
@@ -38,18 +46,44 @@ export default function WellsPanelNew({
       savedSize={savedSize}
       onGeometryChange={onGeometryChange}
     >
-      <div className="p-2">
+      <div className="flex flex-col h-full p-2">
         <div className="relative mb-2">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full h-8 pl-8 pr-3 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
             data-testid="input-search-wells"
           />
         </div>
-        <div className="flex-1 p-3">
-          <div className="w-full h-[400px] border-2 rounded-lg flex items-center justify-center text-muted-foreground"></div>
+        
+        <div className="flex-1 overflow-auto">
+          {wells.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <FileText className="w-12 h-12 mb-2 opacity-30" />
+              <p className="text-sm">No wells loaded</p>
+              <p className="text-xs mt-1">Load CSV/LAS files from Feedback panel</p>
+            </div>
+          ) : filteredWells.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              No wells match your search
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filteredWells.map((well) => (
+                <div
+                  key={well.id}
+                  className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer transition-colors"
+                  title={well.path}
+                >
+                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="text-sm truncate">{well.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DockablePanel>

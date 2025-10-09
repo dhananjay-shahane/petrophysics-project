@@ -17,9 +17,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const resolvedPath = path.resolve(dirPath);
       
-      const stats = await fs.stat(resolvedPath);
-      if (!stats.isDirectory()) {
-        return res.status(400).json({ error: "Path is not a directory" });
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          const parentPath = path.dirname(resolvedPath);
+          return res.json({
+            currentPath: parentPath,
+            parentPath: path.dirname(parentPath),
+            directories: [],
+          });
+        }
+        throw error;
       }
 
       const items = await fs.readdir(resolvedPath, { withFileTypes: true });
@@ -107,6 +119,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating project:", error);
       res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  app.post("/api/projects/save", async (req, res) => {
+    try {
+      const { projectData } = req.body;
+
+      if (!projectData || !projectData.name) {
+        return res.status(400).json({ error: "Project data and name are required" });
+      }
+
+      const databaseDir = path.join(process.cwd(), "database");
+      await fs.mkdir(databaseDir, { recursive: true });
+
+      const fileName = `${projectData.name}_${Date.now()}.json`;
+      const filePath = path.join(databaseDir, fileName);
+
+      await fs.writeFile(filePath, JSON.stringify(projectData, null, 2), 'utf-8');
+
+      res.json({
+        success: true,
+        message: "Project saved successfully",
+        filePath: filePath,
+        fileName: fileName
+      });
+    } catch (error) {
+      console.error("Error saving project:", error);
+      res.status(500).json({ error: "Failed to save project" });
+    }
+  });
+
+  app.get("/api/projects/load/:fileName", async (req, res) => {
+    try {
+      const { fileName } = req.params;
+      const databaseDir = path.join(process.cwd(), "database");
+      const filePath = path.join(databaseDir, fileName);
+
+      const data = await fs.readFile(filePath, 'utf-8');
+      const projectData = JSON.parse(data);
+
+      res.json({
+        success: true,
+        projectData: projectData
+      });
+    } catch (error) {
+      console.error("Error loading project:", error);
+      res.status(500).json({ error: "Failed to load project" });
+    }
+  });
+
+  app.get("/api/projects/list", async (req, res) => {
+    try {
+      const databaseDir = path.join(process.cwd(), "database");
+      
+      try {
+        await fs.access(databaseDir);
+      } catch {
+        await fs.mkdir(databaseDir, { recursive: true });
+        return res.json({ success: true, projects: [] });
+      }
+
+      const files = await fs.readdir(databaseDir);
+      const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+      const projects = await Promise.all(
+        jsonFiles.map(async (file) => {
+          try {
+            const filePath = path.join(databaseDir, file);
+            const stats = await fs.stat(filePath);
+            const data = await fs.readFile(filePath, 'utf-8');
+            const projectData = JSON.parse(data);
+            return {
+              fileName: file,
+              name: projectData.name,
+              path: projectData.path,
+              wellCount: projectData.wells?.length || 0,
+              createdAt: projectData.createdAt,
+              updatedAt: projectData.updatedAt || stats.mtime.toISOString(),
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      res.json({
+        success: true,
+        projects: projects.filter(p => p !== null)
+      });
+    } catch (error) {
+      console.error("Error listing projects:", error);
+      res.status(500).json({ error: "Failed to list projects" });
     }
   });
 

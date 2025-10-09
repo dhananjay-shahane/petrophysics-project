@@ -12,7 +12,8 @@ export default function FeedbackPanelNew({
   onFloat,
   savedPosition,
   savedSize,
-  onGeometryChange
+  onGeometryChange,
+  onLoadWells
 }: { 
   onClose?: () => void;
   onMinimize?: () => void;
@@ -22,6 +23,7 @@ export default function FeedbackPanelNew({
   savedPosition?: { x: number; y: number };
   savedSize?: { width: number; height: number };
   onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
+  onLoadWells?: (files: File[], onError?: (message: string) => void) => void;
 }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -45,41 +47,70 @@ export default function FeedbackPanelNew({
     e.stopPropagation();
   };
 
+  const isValidFileType = (fileName: string): boolean => {
+    const lowerName = fileName.toLowerCase();
+    return lowerName.endsWith('.csv') || lowerName.endsWith('.las');
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
 
-    const files = Array.from(e.dataTransfer.files).filter(
-      file => file.name.endsWith('.csv')
-    );
+    const files = Array.from(e.dataTransfer.files).filter(file => isValidFileType(file.name));
 
     if (files.length > 0) {
       setSelectedFiles(prev => [...prev, ...files]);
       toast({
         title: "Files Added",
-        description: `${files.length} CSV file(s) added successfully.`,
+        description: `${files.length} file(s) added successfully.`,
       });
     } else {
       toast({
         title: "Invalid File Type",
-        description: "Please select CSV files only.",
+        description: "Please select CSV or LAS files only.",
         variant: "destructive",
       });
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter(
-      file => file.name.endsWith('.csv')
-    );
+    const files = Array.from(e.target.files || []).filter(file => isValidFileType(file.name));
 
     if (files.length > 0) {
       setSelectedFiles(prev => [...prev, ...files]);
       toast({
         title: "Files Selected",
-        description: `${files.length} CSV file(s) selected successfully.`,
+        description: `${files.length} file(s) selected successfully.`,
       });
+    }
+  };
+
+  const handleLoadLog = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No Files Selected",
+        description: "Please select CSV or LAS files first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (onLoadWells) {
+      const handleError = (message: string) => {
+        toast({
+          title: "Parse Error",
+          description: message,
+          variant: "destructive",
+        });
+      };
+
+      onLoadWells(selectedFiles, handleError);
+      toast({
+        title: "Wells Loaded",
+        description: `${selectedFiles.length} well(s) loaded successfully.`,
+      });
+      setSelectedFiles([]);
     }
   };
 
@@ -106,14 +137,22 @@ export default function FeedbackPanelNew({
     >
       <div className="flex flex-col h-full p-3 gap-3">
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" data-testid="button-load-log">Load Log</Button>
+          <Button 
+            size="sm" 
+            variant="default"
+            onClick={handleLoadLog}
+            disabled={selectedFiles.length === 0}
+            data-testid="button-load-log"
+          >
+            Load Log
+          </Button>
           <Button 
             size="sm" 
             variant="outline" 
             onClick={handleSelectCSV}
             data-testid="button-load-csv"
           >
-            Select CSV
+            Select CSV/LAS
           </Button>
         </div>
         
@@ -131,8 +170,8 @@ export default function FeedbackPanelNew({
           {selectedFiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <Upload className="w-12 h-12 mb-3 opacity-50" />
-              <p className="text-sm font-medium">Drop CSV files here</p>
-              <p className="text-xs mt-1">or click "Select CSV" button</p>
+              <p className="text-sm font-medium">Drop CSV or LAS files here</p>
+              <p className="text-xs mt-1">or click "Select CSV/LAS" button</p>
             </div>
           ) : (
             <div className="p-3 overflow-auto h-full">
@@ -170,7 +209,7 @@ export default function FeedbackPanelNew({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".csv"
+          accept=".csv,.las"
           multiple
           className="hidden"
           onChange={handleFileSelect}
