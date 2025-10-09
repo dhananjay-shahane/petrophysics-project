@@ -5,7 +5,7 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
-*attached_assets
+attached_assets
 replit.md
 .replit
 local
