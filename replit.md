@@ -178,6 +178,19 @@ None specified yet.
 
 ## Recent Changes
 - **October 9, 2025**: 
+  - **Project Info Menu**: Added new menu in MenuBar displaying project details
+    - Shows current project file path
+    - Displays well count from Wells panel
+    - Accessible from top menu bar
+  - **CSV File Selector in Feedback Panel**: Replaced textarea with drag & drop CSV selector
+    - Drag and drop CSV files directly into the panel
+    - Click "Select CSV" button to browse files
+    - Shows list of selected files with size and remove option
+    - Visual feedback during drag operations
+  - **Window Hover/Focus Effects**: Added visual feedback for window interaction
+    - Border changes to primary color on hover/focus
+    - Shadow effect appears when window is active
+    - Smooth transitions for better UX
   - **Window Minimize/Maximize Feature**: Added bottom taskbar for managing minimized windows
     - Created BottomTaskbar component that displays minimized panels
     - Updated all panel components to support minimize/maximize functionality
