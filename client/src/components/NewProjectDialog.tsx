@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FolderOpen } from "lucide-react";
+import DirectoryPicker from "./DirectoryPicker";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
   const [projectName, setProjectName] = useState("");
   const [projectPath, setProjectPath] = useState("/home/runner/workspace/projects");
   const [isCreating, setIsCreating] = useState(false);
+  const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const { toast } = useToast();
 
   const getFullProjectPath = () => {
@@ -110,10 +112,11 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
   };
 
   const handleChoosePath = () => {
-    const path = prompt("Enter the full path where you want to create the project:", projectPath);
-    if (path !== null && path.trim()) {
-      setProjectPath(path.trim());
-    }
+    setShowDirectoryPicker(true);
+  };
+
+  const handlePathSelected = (path: string) => {
+    setProjectPath(path);
   };
 
   return (
@@ -184,6 +187,13 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <DirectoryPicker
+        open={showDirectoryPicker}
+        onOpenChange={setShowDirectoryPicker}
+        onSelectPath={handlePathSelected}
+        initialPath={projectPath}
+      />
     </Dialog>
   );
 }
