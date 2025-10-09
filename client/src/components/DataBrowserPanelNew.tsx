@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export default function DataBrowserPanelNew({
   onClose,
+  onMinimize,
   isFloating,
   onDock,
   onFloat,
@@ -12,6 +13,7 @@ export default function DataBrowserPanelNew({
   onGeometryChange,
 }: {
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
   onFloat?: () => void;
@@ -68,6 +70,7 @@ export default function DataBrowserPanelNew({
       id="dataBrowser"
       title="Data Browser"
       onClose={onClose}
+      onMinimize={onMinimize}
       isFloating={isFloating}
       onDock={onDock}
       onFloat={onFloat}

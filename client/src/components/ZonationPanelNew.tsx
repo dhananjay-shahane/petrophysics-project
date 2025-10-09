@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ZonationPanelNew({
   onClose,
+  onMinimize,
   isFloating,
   onDock,
   onFloat,
@@ -13,6 +14,7 @@ export default function ZonationPanelNew({
   onGeometryChange,
 }: {
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
   onFloat?: () => void;
@@ -46,6 +48,7 @@ export default function ZonationPanelNew({
         id="zonation"
         title="Zonation"
         onClose={onClose}
+        onMinimize={onMinimize}
         isFloating={isFloating}
         onDock={onDock}
         onFloat={onFloat}

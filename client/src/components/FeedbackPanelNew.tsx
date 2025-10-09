@@ -2,7 +2,8 @@ import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
 
 export default function FeedbackPanelNew({ 
-  onClose, 
+  onClose,
+  onMinimize,
   isFloating,
   onDock,
   onFloat,
@@ -11,6 +12,7 @@ export default function FeedbackPanelNew({
   onGeometryChange
 }: { 
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
   onFloat?: () => void;
@@ -23,6 +25,7 @@ export default function FeedbackPanelNew({
       id="feedback" 
       title="Feedback" 
       onClose={onClose}
+      onMinimize={onMinimize}
       isFloating={isFloating}
       onDock={onDock}
       onFloat={onFloat}

@@ -75,6 +75,12 @@ A professional web-based application for managing and visualizing well log data 
 ### User Interface
 - Advanced docking workspace with draggable and resizable panels
 - Multiple panel types: Wells, Well Log Plot, Data Browser, Zonation, Feedback
+- **Window Management with Bottom Taskbar**:
+  - Minimize any panel by clicking the minimize button (—) in the panel header
+  - Minimized panels are removed from the layout and appear in a sticky bottom taskbar
+  - Each minimized panel shows as a button with its title and a maximize icon
+  - Click the maximize button to restore the panel to its previous position
+  - The bottom taskbar automatically appears when panels are minimized and hides when empty
 - Dark/light theme support via next-themes
 - Responsive menu bar with dropdown menus
 
@@ -171,7 +177,13 @@ In development mode, the Express server uses Vite's middleware mode to:
 None specified yet.
 
 ## Recent Changes
-- **October 9, 2025**: Initial import from GitHub
+- **October 9, 2025**: 
+  - **Window Minimize/Maximize Feature**: Added bottom taskbar for managing minimized windows
+    - Created BottomTaskbar component that displays minimized panels
+    - Updated all panel components to support minimize/maximize functionality
+    - Minimized panels are hidden from layout and shown in sticky bottom bar
+    - Each minimized panel can be restored by clicking the maximize button
+  - Initial import from GitHub
   - Configured for Replit environment
   - Updated vite.config.ts with host: "0.0.0.0" and allowedHosts: true
   - Verified application runs successfully on port 5000

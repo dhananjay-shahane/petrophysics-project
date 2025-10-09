@@ -2,7 +2,8 @@ import DockablePanel from "./DockablePanel";
 import WellLogPlot from "./WellLogPlot";
 
 export default function WellLogPlotPanel({ 
-  onClose, 
+  onClose,
+  onMinimize,
   isFloating,
   onDock,
   onFloat,
@@ -11,6 +12,7 @@ export default function WellLogPlotPanel({
   onGeometryChange
 }: { 
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
   onFloat?: () => void;
@@ -23,6 +25,7 @@ export default function WellLogPlotPanel({
       id="wellLogPlot" 
       title="Well Log Plot" 
       onClose={onClose}
+      onMinimize={onMinimize}
       isFloating={isFloating}
       onDock={onDock}
       onFloat={onFloat}

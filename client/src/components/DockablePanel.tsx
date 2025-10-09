@@ -1,6 +1,6 @@
 import { X, Minus, Square, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Rnd } from "react-rnd";
 
 interface DockablePanelProps {
@@ -8,6 +8,7 @@ interface DockablePanelProps {
   title: string;
   children: ReactNode;
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   defaultPosition?: { x: number; y: number };
   defaultSize?: { width: number; height: number };
@@ -26,6 +27,7 @@ export default function DockablePanel({
   title,
   children,
   onClose,
+  onMinimize,
   isFloating = false,
   defaultPosition = { x: 100, y: 100 },
   defaultSize = { width: 400, height: 300 },
@@ -35,8 +37,6 @@ export default function DockablePanel({
   savedSize,
   onGeometryChange,
 }: DockablePanelProps) {
-  const [isMinimized, setIsMinimized] = useState(false);
-
   if (isFloating) {
     const position = savedPosition || defaultPosition;
     const size = savedSize || defaultSize;
@@ -76,7 +76,7 @@ export default function DockablePanel({
                 size="icon"
                 variant="ghost"
                 className="h-6 w-6"
-                onClick={() => setIsMinimized(!isMinimized)}
+                onClick={onMinimize}
                 data-testid={`button-minimize-${id}`}
               >
                 <Minus className="w-3.5 h-3.5" />
@@ -101,9 +101,7 @@ export default function DockablePanel({
               </Button>
             </div>
           </div>
-          {!isMinimized && (
-            <div className="flex-1 overflow-auto bg-white dark:bg-card">{children}</div>
-          )}
+          <div className="flex-1 overflow-auto bg-white dark:bg-card">{children}</div>
         </div>
       </Rnd>
     );
@@ -120,7 +118,7 @@ export default function DockablePanel({
             size="icon"
             variant="ghost"
             className="h-6 w-6"
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={onMinimize}
             data-testid={`button-minimize-${id}`}
           >
             <Minus className="w-3.5 h-3.5" />
@@ -147,9 +145,7 @@ export default function DockablePanel({
           </Button>
         </div>
       </div>
-      {!isMinimized && (
-        <div className="flex-1 overflow-auto bg-white dark:bg-card">{children}</div>
-      )}
+      <div className="flex-1 overflow-auto bg-white dark:bg-card">{children}</div>
     </div>
   );
 }

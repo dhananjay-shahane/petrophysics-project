@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 
 export default function WellsPanelNew({
   onClose,
+  onMinimize,
   isFloating,
   onDock,
   onFloat,
@@ -11,6 +12,7 @@ export default function WellsPanelNew({
   onGeometryChange,
 }: {
   onClose?: () => void;
+  onMinimize?: () => void;
   isFloating?: boolean;
   onDock?: () => void;
   onFloat?: () => void;
@@ -28,6 +30,7 @@ export default function WellsPanelNew({
       id="wells"
       title="Wells"
       onClose={onClose}
+      onMinimize={onMinimize}
       isFloating={isFloating}
       onDock={onDock}
       onFloat={onFloat}

@@ -7,12 +7,14 @@ import DataBrowserPanelNew from "./DataBrowserPanelNew";
 import FeedbackPanelNew from "./FeedbackPanelNew";
 import WellLogPlotPanel from "./WellLogPlotPanel";
 import { Resizable } from "re-resizable";
+import BottomTaskbar from "./BottomTaskbar";
 
 type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot";
 
 interface PanelState {
   visible: boolean;
   floating: boolean;
+  minimized: boolean;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
   dockZone?: "left" | "right" | "bottom" | "center";
@@ -95,11 +97,11 @@ function DropZone({ id, zone, isActive }: { id: string; zone: string; isActive: 
 
 export default function AdvancedDockWorkspace() {
   const [panels, setPanels] = useState<Record<PanelId, PanelState>>({
-    wells: { visible: true, floating: false, dockZone: "left" },
-    zonation: { visible: true, floating: false, dockZone: "left" },
-    dataBrowser: { visible: true, floating: false, dockZone: "right" },
-    feedback: { visible: true, floating: false, dockZone: "bottom" },
-    wellLogPlot: { visible: true, floating: false, dockZone: "center" },
+    wells: { visible: true, floating: false, minimized: false, dockZone: "left" },
+    zonation: { visible: true, floating: false, minimized: false, dockZone: "left" },
+    dataBrowser: { visible: true, floating: false, minimized: false, dockZone: "right" },
+    feedback: { visible: true, floating: false, minimized: false, dockZone: "bottom" },
+    wellLogPlot: { visible: true, floating: false, minimized: false, dockZone: "center" },
   });
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -161,6 +163,20 @@ export default function AdvancedDockWorkspace() {
     }));
   };
 
+  const minimizePanel = (panelId: PanelId) => {
+    setPanels((prev) => ({
+      ...prev,
+      [panelId]: { ...prev[panelId], minimized: true, visible: true },
+    }));
+  };
+
+  const maximizePanel = (panelId: PanelId) => {
+    setPanels((prev) => ({
+      ...prev,
+      [panelId]: { ...prev[panelId], minimized: false, visible: true },
+    }));
+  };
+
   const saveLayout = () => {
     const layoutData = { panels, theme, leftPanelWidth, rightPanelWidth, bottomPanelHeight };
     localStorage.setItem("dockLayout", JSON.stringify(layoutData));
@@ -216,9 +232,13 @@ export default function AdvancedDockWorkspace() {
       .map(([id]) => id)
   );
 
+  const minimizedPanels = Object.entries(panels)
+    .filter(([_, state]) => state.visible && state.minimized)
+    .map(([id]) => ({ id, title: PANEL_TITLES[id as PanelId] }));
+
   const getDockedPanels = (zone: "left" | "right" | "bottom" | "center") => {
     return Object.entries(panels)
-      .filter(([_, state]) => state.visible && !state.floating && state.dockZone === zone)
+      .filter(([_, state]) => state.visible && !state.floating && !state.minimized && state.dockZone === zone)
       .map(([id]) => id as PanelId);
   };
 
@@ -231,6 +251,7 @@ export default function AdvancedDockWorkspace() {
         <PanelComponent
           key={panelId}
           onClose={() => closePanel(panelId)}
+          onMinimize={() => minimizePanel(panelId)}
           isFloating={true}
           onDock={() => dockPanel(panelId)}
           savedPosition={panelState.position}
@@ -244,6 +265,7 @@ export default function AdvancedDockWorkspace() {
       <PanelComponent
         key={panelId}
         onClose={() => closePanel(panelId)}
+        onMinimize={() => minimizePanel(panelId)}
         onFloat={() => floatPanel(panelId)}
       />
     );
@@ -359,9 +381,14 @@ export default function AdvancedDockWorkspace() {
           </div>
 
           {Object.entries(panels).map(([id, state]) => 
-            state.visible && state.floating && renderPanel(id as PanelId)
+            state.visible && state.floating && !state.minimized && renderPanel(id as PanelId)
           )}
         </div>
+
+        <BottomTaskbar 
+          minimizedPanels={minimizedPanels} 
+          onMaximize={(id) => maximizePanel(id as PanelId)} 
+        />
       </div>
     </DndContext>
   );
