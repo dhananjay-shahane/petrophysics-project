@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 import { Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import NewProjectDialog from "./NewProjectDialog";
 
 interface MenuBarProps {
   onTogglePanel: (panelId: string) => void;
@@ -32,9 +33,10 @@ export default function MenuBar({
 }: MenuBarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
 
   const handleNewProject = () => {
-    fileInputRef.current?.click();
+    setNewProjectDialogOpen(true);
   };
 
   const handleFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +224,11 @@ export default function MenuBar({
         {...({ webkitdirectory: "", directory: "" } as any)}
         multiple
         onChange={handleFolderSelect}
+      />
+      
+      <NewProjectDialog 
+        open={newProjectDialogOpen}
+        onOpenChange={setNewProjectDialogOpen}
       />
     </>
   );
