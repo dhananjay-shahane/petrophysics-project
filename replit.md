@@ -5,8 +5,8 @@ A professional web-based application for managing and visualizing well log data 
 
 ## Project Status
 - **Status**: Successfully imported and configured for Replit environment
-- **Last Updated**: October 9, 2025
-- **Current State**: Fully functional with frontend and backend running
+- **Last Updated**: October 9, 2025 (Fresh import setup completed)
+- **Current State**: Fully functional with frontend and backend running on port 5000
 
 ## Technology Stack
 
@@ -131,10 +131,17 @@ Note: Currently using in-memory storage (MemStorage). To enable PostgreSQL:
 - **Development & Production**: Port 5000 (required by Replit)
 - Frontend dev server runs through Vite middleware on the same port
 - Backend API routes prefixed with `/api`
+- Server configured to bind to 0.0.0.0:5000 for external access
 
 ### Host Configuration
 - **Frontend (Vite)**: 0.0.0.0 with allowedHosts: true (required for Replit proxy)
 - **Backend (Express)**: 0.0.0.0 for external access
+
+### Deployment Configuration
+- **Target**: VM (always-on server for full-stack application)
+- **Build Command**: `npm run build` (builds both frontend and backend)
+- **Run Command**: `npm start` (runs production server from dist/)
+- **Port**: 5000 (same as development)
 
 ## Development Workflow
 
@@ -177,7 +184,14 @@ In development mode, the Express server uses Vite's middleware mode to:
 None specified yet.
 
 ## Recent Changes
-- **October 9, 2025**: 
+- **October 9, 2025 (Fresh Import)**:
+  - Installed all npm dependencies (508 packages)
+  - Fixed server configuration to use port 5000 and bind to 0.0.0.0
+  - Updated .gitignore to explicitly track replit.md
+  - Configured workflow to run `npm run dev` on port 5000
+  - Set up deployment configuration (VM target with build and run commands)
+  - Verified application runs successfully with all panels rendering correctly
+- **October 9, 2025 (Previous session)**: 
   - **Project Info Menu**: Added new menu in MenuBar displaying project details
     - Shows current project file path
     - Displays well count from Wells panel
