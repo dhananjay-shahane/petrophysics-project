@@ -21,6 +21,9 @@ interface MenuBarProps {
   onLoadLayout: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  projectPath: string;
+  wellCount: number;
+  onProjectPathChange: (path: string) => void;
 }
 
 export default function MenuBar({
@@ -30,6 +33,9 @@ export default function MenuBar({
   onLoadLayout,
   theme,
   onToggleTheme,
+  projectPath,
+  wellCount,
+  onProjectPathChange,
 }: MenuBarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -43,6 +49,7 @@ export default function MenuBar({
     const files = event.target.files;
     if (files && files.length > 0) {
       const folderPath = files[0].webkitRelativePath.split('/')[0];
+      onProjectPathChange(folderPath);
       toast({
         title: "Project Opened",
         description: `Selected folder: ${folderPath}`,
@@ -111,6 +118,29 @@ export default function MenuBar({
             <DropdownMenuSeparator />
             <DropdownMenuItem data-testid="menu-exit">Exit</DropdownMenuItem>
           </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-project-info">
+              Project Info
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[300px]">
+              <div className="px-2 py-2 text-sm">
+                <div className="font-semibold mb-2">Project Details</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">File Path:</span>
+                    <span className="font-medium text-foreground ml-2 truncate max-w-[180px]" title={projectPath || "No project opened"}>
+                      {projectPath || "No project opened"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Well Count:</span>
+                    <span className="font-medium text-foreground">{wellCount}</span>
+                  </div>
+                </div>
+              </div>
+            </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>

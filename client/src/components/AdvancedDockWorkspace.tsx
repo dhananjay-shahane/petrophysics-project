@@ -105,6 +105,8 @@ export default function AdvancedDockWorkspace() {
   });
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [projectPath, setProjectPath] = useState<string>("");
+  const [wellCount, setWellCount] = useState<number>(0);
   const [draggedPanel, setDraggedPanel] = useState<PanelId | null>(null);
   const [dropZones, setDropZones] = useState<DropZone[]>([
     { id: "left", zone: "left" },
@@ -292,6 +294,9 @@ export default function AdvancedDockWorkspace() {
           onLoadLayout={loadLayout}
           theme={theme}
           onToggleTheme={toggleTheme}
+          projectPath={projectPath}
+          wellCount={wellCount}
+          onProjectPathChange={setProjectPath}
         />
 
         <div className="flex-1 relative flex gap-1 p-1">
