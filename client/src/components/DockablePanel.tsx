@@ -1,6 +1,6 @@
 import { X, Minus, Square, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Rnd } from "react-rnd";
 
 interface DockablePanelProps {
@@ -37,6 +37,9 @@ export default function DockablePanel({
   savedSize,
   onGeometryChange,
 }: DockablePanelProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
   if (isFloating) {
     const position = savedPosition || defaultPosition;
     const size = savedSize || defaultSize;
@@ -66,7 +69,18 @@ export default function DockablePanel({
           );
         }}
       >
-        <div className="flex flex-col h-full bg-card border-2 border-card-border shadow-xl rounded">
+        <div 
+          className={`flex flex-col h-full bg-card border-2 shadow-xl rounded transition-all duration-200 ${
+            isHovered || isFocused 
+              ? 'border-primary shadow-2xl shadow-primary/30' 
+              : 'border-card-border'
+          }`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          tabIndex={0}
+        >
           <div className="drag-handle flex items-center justify-between h-10 px-3 py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border cursor-move">
             <span className="text-sm font-semibold text-foreground dark:text-card-foreground truncate">
               {title}
@@ -108,7 +122,18 @@ export default function DockablePanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-card border border-card-border">
+    <div 
+      className={`flex flex-col h-full bg-card border transition-all duration-200 ${
+        isHovered || isFocused 
+          ? 'border-2 border-primary shadow-lg shadow-primary/20' 
+          : 'border border-card-border'
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      tabIndex={0}
+    >
       <div className="flex items-center justify-between h-10 px-3 py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border">
         <span className="text-sm font-semibold text-foreground dark:text-card-foreground truncate">
           {title}
