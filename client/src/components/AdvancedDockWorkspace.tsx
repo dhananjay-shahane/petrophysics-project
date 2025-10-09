@@ -305,7 +305,7 @@ export default function AdvancedDockWorkspace() {
               <div className="flex-1 flex gap-1">
                 <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
                   {centerPanels.length > 0 ? (
-                    centerPanels.map((panelId) => renderPanel(panelId, true))
+                    centerPanels.map((panelId) => <div key={panelId}>{renderPanel(panelId, true)}</div>)
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       Central Workspace - Drag panels here
