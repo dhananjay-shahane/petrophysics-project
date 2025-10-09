@@ -13,13 +13,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects/create", async (req, res) => {
     try {
-      const { name, path: projectPath } = req.body;
+      const { name, path: customPath } = req.body;
 
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Project name is required" });
       }
 
+      if (!customPath || !customPath.trim()) {
+        return res.status(400).json({ error: "Project path is required" });
+      }
+
       const projectName = name.trim();
+      const projectBasePath = customPath.trim();
       
       if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
         return res.status(400).json({ 
@@ -33,13 +38,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const baseDir = path.join(process.cwd(), "projects", projectName);
+      const baseDir = path.join(projectBasePath, projectName);
       
       const resolvedPath = path.resolve(baseDir);
-      const projectsDir = path.resolve(process.cwd(), "projects");
-      if (!resolvedPath.startsWith(projectsDir)) {
+      if (resolvedPath.includes('..')) {
         return res.status(400).json({ 
-          error: "Invalid project name: must be within projects directory" 
+          error: "Invalid path: path traversal not allowed" 
         });
       }
 
