@@ -85,6 +85,10 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
   - Set default project path to petrophysics-workplace
   - Added right-click context menu with Rename and Delete options
   - Fixed folder name truncation with word wrapping (displays up to 2 lines)
+  - **Integrated DirectoryPicker with File > Import menu**
+  - **Integrated DirectoryPicker with Project > Open menu**
+  - Fixed path display to show "petrophysics-workplace" at root
+  - Server auto-creates petrophysics-workplace folder on first access
 
 ## Dependencies
 - **Frontend**: React, Vite, Tailwind, Radix UI, Framer Motion, react-rnd, dnd-kit
