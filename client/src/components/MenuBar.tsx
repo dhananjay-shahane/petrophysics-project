@@ -28,6 +28,7 @@ interface MenuBarProps {
   onOpenProjectList?: () => void;
   onOpenImportPicker?: () => void;
   onOpenProjectPicker?: () => void;
+  onNewWell?: () => void;
 }
 
 export default function MenuBar({
@@ -44,6 +45,7 @@ export default function MenuBar({
   onOpenProjectList,
   onOpenImportPicker,
   onOpenProjectPicker,
+  onNewWell,
 }: MenuBarProps) {
   const { toast } = useToast();
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
@@ -115,6 +117,8 @@ export default function MenuBar({
             <DropdownMenuItem onClick={handleNewProject} data-testid="menu-new">New</DropdownMenuItem>
             <DropdownMenuItem onClick={handleOpen} data-testid="menu-open">Open</DropdownMenuItem>
             <DropdownMenuItem onClick={handleSave} data-testid="menu-save">Save</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onNewWell} data-testid="menu-new-well">New Well</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onTogglePanel("dataBrowser")} data-testid="menu-new-dockable">New Dockable Window</DropdownMenuItem>
             <DropdownMenuItem data-testid="menu-remove-widget">Remove Central Widget</DropdownMenuItem>
