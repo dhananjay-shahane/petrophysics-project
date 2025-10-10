@@ -1,0 +1,6 @@
+well_name,description,las_file,depth_min,depth_max,location
+WELL-001,Exploration well in North Field,WELL-001.las,1000,2500,North Field Block A
+WELL-002,Appraisal well with good reservoir quality,WELL-002.las,1200,2800,North Field Block B
+WELL-003,Development well - primary producer,WELL-003.las,950,2300,Central Field
+WELL-004,Horizontal well targeting shale formation,WELL-004.las,1500,3200,East Field Block C
+WELL-005,Observation well for pressure monitoring,WELL-005.las,1100,2600,West Field
