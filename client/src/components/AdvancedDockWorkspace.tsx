@@ -168,13 +168,29 @@ export default function AdvancedDockWorkspace() {
   }, [theme]);
 
   const togglePanel = (panelId: string) => {
-    setPanels((prev) => ({
-      ...prev,
-      [panelId]: {
-        ...prev[panelId as PanelId],
-        visible: !prev[panelId as PanelId].visible,
-      },
-    }));
+    setPanels((prev) => {
+      const panel = prev[panelId as PanelId];
+      // If panel doesn't exist, create it with default values
+      if (!panel) {
+        return {
+          ...prev,
+          [panelId]: {
+            visible: true,
+            floating: false,
+            minimized: false,
+            dockZone: "center" as const,
+          },
+        };
+      }
+      // Otherwise toggle visibility
+      return {
+        ...prev,
+        [panelId]: {
+          ...panel,
+          visible: !panel.visible,
+        },
+      };
+    });
   };
 
   const closePanel = (panelId: PanelId) => {

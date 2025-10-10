@@ -1,7 +1,25 @@
-import { Card } from "@/components/ui/card";
+import DockablePanel from "./DockablePanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-export default function LogPlotPanel() {
+export default function LogPlotPanel({ 
+  onClose,
+  onMinimize,
+  isFloating,
+  onDock,
+  onFloat,
+  savedPosition,
+  savedSize,
+  onGeometryChange
+}: { 
+  onClose?: () => void;
+  onMinimize?: () => void;
+  isFloating?: boolean;
+  onDock?: () => void;
+  onFloat?: () => void;
+  savedPosition?: { x: number; y: number };
+  savedSize?: { width: number; height: number };
+  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
+}) {
   // Sample data for log plot
   const sampleData = [
     { depth: 1000, gr: 45, resistivity: 2.5, porosity: 18 },
@@ -13,35 +31,40 @@ export default function LogPlotPanel() {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="flex-1 p-4">
-        <Card className="h-full p-4">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold">Log Plot</h3>
-            <p className="text-sm text-muted-foreground">Display well log data vs depth</p>
-          </div>
-          
-          <ResponsiveContainer width="100%" height="85%">
-            <LineChart data={sampleData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="gr" 
-                label={{ value: 'Gamma Ray (API)', position: 'bottom' }}
-              />
-              <YAxis 
-                dataKey="depth" 
-                reversed
-                label={{ value: 'Depth (m)', angle: -90, position: 'left' }}
-              />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="gr" stroke="#8b5cf6" name="Gamma Ray" />
-              <Line type="monotone" dataKey="resistivity" stroke="#0ea5e9" name="Resistivity" />
-              <Line type="monotone" dataKey="porosity" stroke="#10b981" name="Porosity" />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
+    <DockablePanel 
+      id="logPlot" 
+      title="Log Plot" 
+      onClose={onClose}
+      onMinimize={onMinimize}
+      isFloating={isFloating}
+      onDock={onDock}
+      onFloat={onFloat}
+      savedPosition={savedPosition}
+      savedSize={savedSize}
+      onGeometryChange={onGeometryChange}
+      defaultSize={{ width: 900, height: 600 }}
+    >
+      <div className="h-full flex flex-col bg-background p-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={sampleData} margin={{ top: 20, right: 30, left: 40, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="gr" 
+              label={{ value: 'Gamma Ray (API)', position: 'bottom', offset: 0 }}
+            />
+            <YAxis 
+              dataKey="depth" 
+              reversed
+              label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft' }}
+            />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="gr" stroke="#8b5cf6" name="Gamma Ray" strokeWidth={2} />
+            <Line type="monotone" dataKey="resistivity" stroke="#0ea5e9" name="Resistivity" strokeWidth={2} />
+            <Line type="monotone" dataKey="porosity" stroke="#10b981" name="Porosity" strokeWidth={2} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
-    </div>
+    </DockablePanel>
   );
 }

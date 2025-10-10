@@ -96,6 +96,19 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
     - Supports: Linux, Windows, root paths, and relative paths
     - Shows notification when using alternative path
 
+### New Features Added
+- ✅ **View Menu with Visualization Windows**
+  - Added new "View" menu in menu bar
+  - Cross Plot window - scatter plot for correlating well log parameters
+  - Log Plot window - line chart for displaying well logs vs depth
+  - Both windows use DockablePanel wrapper like Well Log Plot
+  - Windows can be docked, floated, minimized, and resized
+  
+- ✅ **Enhanced Feedback Panel**
+  - Now shows full file path when CSV/LAS files are dropped
+  - Displays file name, size, and path information
+  - Better file information visibility
+
 ### Previous Features (from original setup)
 - Made DATABASE_URL optional (file storage primary)
 - **Directory Picker Updates**:
