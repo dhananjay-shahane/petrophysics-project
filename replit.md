@@ -81,6 +81,16 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
 - ✅ Development server running on port 5000 with HMR (Hot Module Replacement)
 - ✅ Backend and frontend integrated in single Express server
 
+### UI/UX Improvements
+- ✅ **Updated Directory Picker with Rounded Folder Selection UI**
+  - Changed title from "Choose Directory Path" to "Select Folder"
+  - Implemented single-click to select folder, double-click to navigate
+  - Added rounded/circular folder icons with selection highlighting
+  - Folders now show with rounded-2xl borders and scale effect on selection
+  - Selected folder displays with primary color highlight and shadow
+  - Button text dynamically shows selected folder name
+  - Improved visual feedback with smooth transitions
+
 ### Previous Features (from original setup)
 - Made DATABASE_URL optional (file storage primary)
 - **Directory Picker Updates**:
