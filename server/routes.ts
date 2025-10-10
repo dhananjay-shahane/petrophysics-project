@@ -724,21 +724,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Sanitize well name
-      let wellName = wellInfo.wellName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      let baseWellName = wellInfo.wellName.replace(/[^a-zA-Z0-9_-]/g, '_');
       
-      if (!/^[a-zA-Z0-9_-]+$/.test(wellName)) {
-        wellName = "WELL_" + Date.now();
+      if (!/^[a-zA-Z0-9_-]+$/.test(baseWellName)) {
+        baseWellName = "WELL_" + Date.now();
       }
 
-      const fileName = `${wellName}.json`;
-      const filePath = path.join(wellsDir, fileName);
+      // Find unique well name if one already exists
+      let wellName = baseWellName;
+      let fileName = `${wellName}.json`;
+      let filePath = path.join(wellsDir, fileName);
+      let counter = 1;
 
-      // Check if well already exists
-      try {
-        await fs.access(filePath);
-        return res.status(400).json({ error: `A well with name "${wellName}" already exists` });
-      } catch {
-        // File doesn't exist, we can create it
+      while (true) {
+        try {
+          await fs.access(filePath);
+          // File exists, try next number
+          wellName = `${baseWellName}_${counter}`;
+          fileName = `${wellName}.json`;
+          filePath = path.join(wellsDir, fileName);
+          counter++;
+        } catch {
+          // File doesn't exist, we can use this name
+          break;
+        }
       }
 
       // Create well data with parsed LAS information

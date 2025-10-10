@@ -105,6 +105,28 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
     - Shows notification when using alternative path
 
 ### New Features Added
+- ✅ **Well Creation System** (October 10, 2025)
+  - **CSV Upload for Multiple Wells**:
+    - Upload CSV files to create multiple wells at once
+    - Validates well names and depth ranges (depth_max > depth_min)
+    - Generates realistic LAS files automatically for each well
+    - Row-level error reporting for validation issues
+    - Saves well data as JSON in project's 10-WELLS folder
+  - **LAS File Upload for Single Well**:
+    - Upload LAS files to create individual wells
+    - Well name automatically extracted from LAS file
+    - Server-side LAS parser extracts metadata (Well, Curve, ASCII sections)
+    - Parses company, field, location, depth information
+    - Auto-generates unique well names if duplicate exists (e.g., WELL_1, WELL_2)
+    - Copies LAS file to project's 02-INPUT_LAS_FOLDER
+    - Generates well data with curve information
+  - **Auto-Loading Wells on Project Open**:
+    - Wells automatically load when project is opened
+    - New `/api/wells/list` endpoint with workspace security validation
+    - Path normalization prevents directory traversal attacks
+    - Displays wells in Wells panel immediately on project selection
+    - Returns empty array gracefully when 10-WELLS folder missing
+
 - ✅ **View Menu with Visualization Windows**
   - Added new "View" menu in menu bar
   - Cross Plot window - scatter plot for correlating well log parameters
