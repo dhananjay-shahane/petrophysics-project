@@ -320,10 +320,10 @@ export default function DirectoryPicker({
                         <ContextMenuTrigger>
                           <button
                             onClick={() => handleSelectDirectory(dir.path)}
-                            className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20"
+                            className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20 w-full min-h-[120px]"
                           >
-                            <Folder className="w-12 h-12 text-blue-500" />
-                            <span className="text-sm font-medium truncate w-full" title={dir.name}>
+                            <Folder className="w-12 h-12 text-blue-500 flex-shrink-0" />
+                            <span className="text-sm font-medium w-full break-words line-clamp-2" title={dir.name}>
                               {dir.name}
                             </span>
                           </button>
