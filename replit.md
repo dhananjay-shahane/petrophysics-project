@@ -70,7 +70,30 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
 
 ## Recent Changes (October 10, 2025)
 
-### Well Selection & Visualization Integration ✅ (Latest - October 10, 2025)
+### Python-Based Well Log Visualization with lasio + matplotlib ✅ (Latest - October 10, 2025)
+- ✅ **Python Integration for Professional Well Log Plots**:
+  - Installed Python 3.11 with lasio, matplotlib, pandas, numpy libraries
+  - Created Python script (`server/python/generate_well_log_plot.py`) for well log generation
+  - Uses real LAS data to create multi-track well log visualizations
+  - Generates high-quality PNG images (150 DPI) with proper depth scaling
+  - Auto-scales each curve to fit track width with color-coded display
+  - Up to 6 tracks displayed simultaneously
+- ✅ **API Integration**:
+  - Added `/api/wells/generate-plot` endpoint to call Python script
+  - Plot images saved to `public/well-plots/` directory
+  - Static file serving configured to serve well plot images
+  - Fixed middleware order to serve static files before Vite catch-all
+- ✅ **UI Updates**:
+  - Replaced canvas-based visualization with Python-generated images
+  - Real-time plot generation when well is selected
+  - Loading states and error handling for plot generation
+  - Displays well name above plot image
+- ✅ **Data Integration**:
+  - Wells now load actual LAS curve data (not just metadata)
+  - Cross Plot and Log Plot panels display selected well data
+  - All visualization panels react to well selection
+
+### Well Selection & Visualization Integration ✅ (October 10, 2025)
 - ✅ **Connected Wells Panel to Well Log Plot**:
   - Click any well in Wells panel to select it (highlights with border)
   - Selected well data automatically loads from JSON file

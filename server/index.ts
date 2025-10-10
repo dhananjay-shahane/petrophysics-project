@@ -37,6 +37,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Serve static files from public directory FIRST (for well plots, etc.)
+  app.use(express.static("public"));
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -46,9 +49,6 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
-
-  // Serve static files from public directory (for well plots, etc.)
-  app.use(express.static("public"));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
