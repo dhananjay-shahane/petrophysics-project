@@ -74,6 +74,12 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
 - Set up workflow for port 5000
 - Verified all UI components and features
 - Made DATABASE_URL optional (file storage primary)
+- **Directory Picker Updates**:
+  - Restricted browsing to petrophysics-workplace folder only
+  - Changed UI from list view to 3-column grid layout
+  - Added "New Folder" creation functionality
+  - Implemented secure path validation to prevent directory traversal
+  - Set default project path to petrophysics-workplace
 
 ## Dependencies
 - **Frontend**: React, Vite, Tailwind, Radix UI, Framer Motion, react-rnd, dnd-kit

@@ -113,6 +113,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/directories/delete", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { folderPath } = req.body;
+
+      if (!folderPath || !folderPath.trim()) {
+        return res.status(400).json({ error: "Folder path is required" });
+      }
+
+      const resolvedPath = path.resolve(folderPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      if (resolvedPath === workspaceRoot) {
+        return res.status(403).json({ error: "Cannot delete workspace root" });
+      }
+
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          return res.status(404).json({ error: "Folder not found" });
+        }
+        throw error;
+      }
+
+      await fs.rm(resolvedPath, { recursive: true, force: true });
+
+      res.json({
+        success: true,
+        message: "Folder deleted successfully",
+        path: resolvedPath
+      });
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+      res.status(500).json({ error: "Failed to delete folder" });
+    }
+  });
+
+  app.put("/api/directories/rename", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { folderPath, newName } = req.body;
+
+      if (!folderPath || !folderPath.trim()) {
+        return res.status(400).json({ error: "Folder path is required" });
+      }
+
+      if (!newName || !newName.trim()) {
+        return res.status(400).json({ error: "New folder name is required" });
+      }
+
+      const sanitizedName = newName.trim();
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedName)) {
+        return res.status(400).json({ 
+          error: "Folder name can only contain letters, numbers, hyphens, and underscores" 
+        });
+      }
+
+      const resolvedPath = path.resolve(folderPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      if (resolvedPath === workspaceRoot) {
+        return res.status(403).json({ error: "Cannot rename workspace root" });
+      }
+
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          return res.status(404).json({ error: "Folder not found" });
+        }
+        throw error;
+      }
+
+      const parentDir = path.dirname(resolvedPath);
+      const newPath = path.join(parentDir, sanitizedName);
+
+      try {
+        await fs.access(newPath);
+        return res.status(400).json({ error: "A folder with this name already exists" });
+      } catch {
+        // Folder doesn't exist, we can rename
+      }
+
+      await fs.rename(resolvedPath, newPath);
+
+      res.json({
+        success: true,
+        message: "Folder renamed successfully",
+        oldPath: resolvedPath,
+        newPath: newPath,
+        newName: sanitizedName
+      });
+    } catch (error) {
+      console.error("Error renaming folder:", error);
+      res.status(500).json({ error: "Failed to rename folder" });
+    }
+  });
+
   app.post("/api/projects/create", async (req, res) => {
     try {
       const { name, path: customPath } = req.body;

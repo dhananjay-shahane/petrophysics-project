@@ -7,10 +7,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, ArrowUp, FolderPlus } from "lucide-react";
+import { Folder, ArrowUp, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DirectoryPickerProps {
@@ -47,6 +63,12 @@ export default function DirectoryPicker({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<Directory | null>(null);
+  const [renameFolderName, setRenameFolderName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const { toast } = useToast();
 
   const loadDirectories = async (path: string) => {
@@ -144,6 +166,104 @@ export default function DirectoryPicker({
     onOpenChange(false);
   };
 
+  const handleDeleteFolder = async () => {
+    if (!selectedFolder) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/directories/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folderPath: selectedFolder.path,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete folder");
+      }
+
+      toast({
+        title: "Success",
+        description: "Folder deleted successfully",
+      });
+
+      setShowDeleteDialog(false);
+      setSelectedFolder(null);
+      loadDirectories(currentPath);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete folder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRenameFolder = async () => {
+    if (!selectedFolder || !renameFolderName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a new folder name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRenaming(true);
+    try {
+      const response = await fetch("/api/directories/rename", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folderPath: selectedFolder.path,
+          newName: renameFolderName.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to rename folder");
+      }
+
+      toast({
+        title: "Success",
+        description: "Folder renamed successfully",
+      });
+
+      setRenameFolderName("");
+      setShowRenameDialog(false);
+      setSelectedFolder(null);
+      loadDirectories(currentPath);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to rename folder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleContextMenuRename = (dir: Directory) => {
+    setSelectedFolder(dir);
+    setRenameFolderName(dir.name);
+    setShowRenameDialog(true);
+  };
+
+  const handleContextMenuDelete = (dir: Directory) => {
+    setSelectedFolder(dir);
+    setShowDeleteDialog(true);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,16 +316,32 @@ export default function DirectoryPicker({
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
                     {directories.map((dir) => (
-                      <button
-                        key={dir.path}
-                        onClick={() => handleSelectDirectory(dir.path)}
-                        className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20"
-                      >
-                        <Folder className="w-12 h-12 text-blue-500" />
-                        <span className="text-sm font-medium truncate w-full" title={dir.name}>
-                          {dir.name}
-                        </span>
-                      </button>
+                      <ContextMenu key={dir.path}>
+                        <ContextMenuTrigger>
+                          <button
+                            onClick={() => handleSelectDirectory(dir.path)}
+                            className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20"
+                          >
+                            <Folder className="w-12 h-12 text-blue-500" />
+                            <span className="text-sm font-medium truncate w-full" title={dir.name}>
+                              {dir.name}
+                            </span>
+                          </button>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem onClick={() => handleContextMenuRename(dir)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Rename
+                          </ContextMenuItem>
+                          <ContextMenuItem 
+                            onClick={() => handleContextMenuDelete(dir)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     ))}
                   </div>
                 )}
@@ -266,6 +402,75 @@ export default function DirectoryPicker({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+            <DialogDescription>
+              Enter a new name for the folder (letters, numbers, hyphens, and underscores only)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input
+              placeholder="New folder name"
+              value={renameFolderName}
+              onChange={(e) => setRenameFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isRenaming) {
+                  handleRenameFolder();
+                }
+              }}
+              disabled={isRenaming}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRenameDialog(false);
+                setRenameFolderName("");
+                setSelectedFolder(null);
+              }}
+              disabled={isRenaming}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRenameFolder} disabled={isRenaming}>
+              {isRenaming ? "Renaming..." : "Rename"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedFolder?.name}"? This action cannot be undone and will permanently delete the folder and all its contents.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setSelectedFolder(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFolder}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
