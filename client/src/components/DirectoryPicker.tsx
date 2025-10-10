@@ -344,7 +344,7 @@ export default function DirectoryPicker({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[60%]">
           <DialogHeader>
             <DialogTitle>Select Folder</DialogTitle>
             <DialogDescription>
@@ -363,7 +363,7 @@ export default function DirectoryPicker({
               >
                 <ArrowUp className="w-4 h-4" />
               </Button>
-              <div className="flex-1 px-3 py-2 bg-muted rounded-md font-mono text-sm truncate">
+              <div className="flex-1 px-3 py-2 bg-muted rounded-md font-mono text-xs truncate">
                 {currentPath === workspaceRoot 
                   ? "petrophysics-workplace" 
                   : currentPath.replace(workspaceRoot + "/", "")}
@@ -395,7 +395,7 @@ export default function DirectoryPicker({
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     {directories.map((dir) => (
                       <ContextMenu key={dir.path}>
                         <ContextMenuTrigger>
@@ -403,8 +403,8 @@ export default function DirectoryPicker({
                             onClick={() => handleFolderClick(dir)}
                             onDoubleClick={() => handleFolderDoubleClick(dir)}
                             className={`
-                              flex flex-col items-center gap-2 p-4 text-center 
-                              rounded-2xl transition-all duration-200 w-full min-h-[120px]
+                              flex flex-col items-center gap-2 p-2 text-center 
+                              rounded-xl transition-all duration-200 w-full min-h-[100px]
                               ${selectedFolderForPick?.path === dir.path 
                                 ? 'bg-primary/10 border-2 border-primary shadow-lg scale-105' 
                                 : 'bg-background hover:bg-accent border-2 border-transparent hover:border-primary/20'
