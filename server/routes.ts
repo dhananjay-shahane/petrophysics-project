@@ -958,6 +958,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to generate well log plot using Python
+  app.post("/api/wells/generate-plot", async (req, res) => {
+    try {
+      const { wellPath } = req.body;
+      
+      if (!wellPath) {
+        return res.status(400).json({ error: "Well path is required" });
+      }
+      
+      // Read well JSON data
+      const wellData = JSON.parse(await fs.readFile(wellPath, 'utf-8'));
+      
+      // Create temporary directory for plots if it doesn't exist
+      const plotsDir = path.join(process.cwd(), 'public', 'well-plots');
+      await fs.mkdir(plotsDir, { recursive: true });
+      
+      // Generate unique filename for the plot
+      const plotFilename = `well-plot-${Date.now()}.png`;
+      const plotPath = path.join(plotsDir, plotFilename);
+      
+      // Call Python script to generate plot
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      
+      const pythonScript = path.join(process.cwd(), 'server', 'python', 'generate_well_log_plot.py');
+      
+      try {
+        const { stdout, stderr } = await execFileAsync('python3', [
+          pythonScript,
+          wellPath,
+          plotPath
+        ]);
+        
+        const result = JSON.parse(stdout);
+        
+        if (result.success) {
+          res.json({
+            success: true,
+            plotUrl: `/well-plots/${plotFilename}`,
+            tracks: result.tracks,
+            curves: result.curves
+          });
+        } else {
+          res.status(500).json({ error: result.error || "Failed to generate plot" });
+        }
+      } catch (error: any) {
+        console.error("Python script error:", error);
+        res.status(500).json({ error: "Failed to execute Python script: " + error.message });
+      }
+    } catch (error: any) {
+      console.error("Error generating well log plot:", error);
+      res.status(500).json({ error: "Failed to generate well log plot: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
