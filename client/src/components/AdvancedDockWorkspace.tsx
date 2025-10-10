@@ -559,7 +559,7 @@ export default function AdvancedDockWorkspace() {
       ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
       ? { onLoadWells: handleLoadWells }
-      : panelId === 'wellLogPlot'
+      : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'
       ? { selectedWell }
       : {};
 
