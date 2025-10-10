@@ -392,6 +392,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/wells/create", async (req, res) => {
+    try {
+      const { name, projectPath, description } = req.body;
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Well name is required" });
+      }
+
+      if (!projectPath || !projectPath.trim()) {
+        return res.status(400).json({ error: "Project path is required" });
+      }
+
+      const wellName = name.trim();
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(wellName)) {
+        return res.status(400).json({ 
+          error: "Well name can only contain letters, numbers, hyphens, and underscores" 
+        });
+      }
+
+      const wellsDir = path.join(projectPath, "10-WELLS");
+      
+      try {
+        await fs.access(wellsDir);
+      } catch {
+        await fs.mkdir(wellsDir, { recursive: true });
+      }
+
+      const fileName = `${wellName}.json`;
+      const filePath = path.join(wellsDir, fileName);
+
+      try {
+        await fs.access(filePath);
+        return res.status(400).json({ error: "A well with this name already exists" });
+      } catch {
+        // File doesn't exist, we can create it
+      }
+
+      const wellData = {
+        id: `well-${Date.now()}`,
+        name: wellName,
+        description: description || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: null,
+        logs: [],
+        metadata: {}
+      };
+
+      await fs.writeFile(filePath, JSON.stringify(wellData, null, 2), 'utf-8');
+
+      res.json({
+        success: true,
+        message: `Well "${wellName}" created successfully`,
+        filePath: filePath,
+        well: wellData
+      });
+    } catch (error) {
+      console.error("Error creating well:", error);
+      res.status(500).json({ error: "Failed to create well" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
