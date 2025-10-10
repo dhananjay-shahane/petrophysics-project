@@ -694,6 +694,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
   });
 
+  // Preview LAS file before uploading
+  app.post("/api/wells/preview-las", async (req, res) => {
+    try {
+      const { lasContent } = req.body;
+      
+      if (!lasContent) {
+        return res.status(400).json({ error: "No LAS content provided" });
+      }
+
+      const wellInfo = parseLASFile(lasContent);
+      
+      res.json({
+        wellName: wellInfo.wellName,
+        company: wellInfo.company,
+        field: wellInfo.field,
+        location: wellInfo.location,
+        startDepth: wellInfo.startDepth,
+        stopDepth: wellInfo.stopDepth,
+        step: wellInfo.step,
+        curveNames: wellInfo.curveNames,
+        dataPoints: wellInfo.curves.length
+      });
+    } catch (error: any) {
+      console.error("Error previewing LAS file:", error);
+      res.status(500).json({ error: "Failed to preview LAS file: " + error.message });
+    }
+  });
+
   app.post("/api/wells/create-from-las", upload.single("lasFile"), async (req, res) => {
     try {
       if (!req.file) {

@@ -34,6 +34,7 @@ export default function NewWellDialog({
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [lasFile, setLasFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [lasPreview, setLasPreview] = useState<any>(null);
   const { toast } = useToast();
 
   const handleCreateWell = async () => {
@@ -253,6 +254,7 @@ export default function NewWellDialog({
       setDescription("");
       setCsvFile(null);
       setLasFile(null);
+      setLasPreview(null);
     }
     onOpenChange(open);
   };
@@ -272,7 +274,7 @@ export default function NewWellDialog({
     }
   };
 
-  const handleLasFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLasFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.name.endsWith('.las') && !file.name.endsWith('.LAS')) {
@@ -284,6 +286,23 @@ export default function NewWellDialog({
         return;
       }
       setLasFile(file);
+      
+      // Preview LAS file content
+      try {
+        const content = await file.text();
+        const preview = await fetch('/api/wells/preview-las', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lasContent: content })
+        });
+        
+        if (preview.ok) {
+          const data = await preview.json();
+          setLasPreview(data);
+        }
+      } catch (error) {
+        console.error('Error previewing LAS file:', error);
+      }
     }
   };
 
@@ -377,16 +396,42 @@ export default function NewWellDialog({
               )}
             </div>
 
-            <div className="bg-muted p-4 rounded-lg text-sm">
-              <p className="font-medium mb-2">LAS File Upload:</p>
-              <p className="text-muted-foreground mb-2">Upload a LAS (Log ASCII Standard) file to create a well:</p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>The well name will be extracted from the LAS file header</li>
-                <li>Well log data and curves will be parsed automatically</li>
-                <li>Data will be saved in JSON format in the 10-WELLS folder</li>
-                <li>LAS file will be copied to 02-INPUT_LAS_FOLDER</li>
-              </ul>
-            </div>
+            {lasPreview ? (
+              <div className="bg-muted p-4 rounded-lg text-sm space-y-2">
+                <p className="font-medium text-green-600">✓ LAS File Parsed Successfully</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="font-medium">Well Name:</span> {lasPreview.wellName || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Company:</span> {lasPreview.company || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Location:</span> {lasPreview.location || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Depth Range:</span> {lasPreview.startDepth || 'N/A'} - {lasPreview.stopDepth || 'N/A'}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium">Curves ({lasPreview.curveNames?.length || 0}):</span> {lasPreview.curveNames?.join(', ') || 'None'}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium">Data Points:</span> {lasPreview.dataPoints || 0} rows
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-muted p-4 rounded-lg text-sm">
+                <p className="font-medium mb-2">LAS File Upload:</p>
+                <p className="text-muted-foreground mb-2">Upload a LAS (Log ASCII Standard) file to create a well:</p>
+                <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                  <li>The well name will be extracted from the LAS file header</li>
+                  <li>Well log data and curves will be parsed automatically</li>
+                  <li>Data will be saved in JSON format in the 10-WELLS folder</li>
+                  <li>LAS file will be copied to 02-INPUT_LAS_FOLDER</li>
+                </ul>
+              </div>
+            )}
 
             <div className="text-sm text-muted-foreground">
               <p className="font-medium">Current Project:</p>

@@ -70,7 +70,57 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
 
 ## Recent Changes (October 10, 2025)
 
-### Fresh GitHub Import - Replit Environment Setup ✅ (Latest - October 10, 2025)
+### Well Selection & Visualization Integration ✅ (Latest - October 10, 2025)
+- ✅ **Connected Wells Panel to Well Log Plot**:
+  - Click any well in Wells panel to select it (highlights with border)
+  - Selected well data automatically loads from JSON file
+  - Well Log Plot displays selected well's curves in real-time
+  - Shows curve names from actual well data (DEPT, DT, RESD, SP, GR, etc.)
+  - Real well log visualization with proper depth scaling
+  - Displays "No well selected" message when no well is chosen
+  - Displays "Loading well..." message while data loads
+- ✅ **Real Data Visualization**:
+  - Plots actual LAS curve data (not mock/sample data)
+  - Auto-scales each curve to fit track width
+  - Normalizes depth range to canvas height
+  - Color-coded curves for easy identification
+  - Up to 8 tracks displayed simultaneously
+  - Excludes DEPT/DEPTH from display curves (used for Y-axis only)
+- ✅ **Data Flow**:
+  1. User opens project → Wells load automatically
+  2. User clicks well in Wells panel → Well selected
+  3. System loads well JSON data (if not loaded)
+  4. Well Log Plot receives selected well
+  5. Canvas renders actual curve data
+- ✅ **State Management**:
+  - selectedWell state tracks currently selected well
+  - Well data cached in wells array after first load
+  - Auto-updates visualization when selection changes
+
+### Enhanced LAS File Parsing & Well Creation ✅ (October 10, 2025)
+- ✅ **Improved LAS File to Well JSON Conversion**:
+  - Enhanced LAS parser to extract all well log data from ASCII section
+  - Parser extracts: well info, company, field, location, depth range, curves, and data points
+  - Data properly structured: `data` array contains all depth and curve values
+  - Each data point includes all curves (DEPT, DT, RESD, SP, GR, etc.)
+  - Metadata includes: lasFile, depthMin, depthMax, location, company, field, step, null value
+- ✅ **Live LAS File Preview**:
+  - Added preview API endpoint: `/api/wells/preview-las`
+  - Shows parsed data before upload: well name, company, location, depth range, curves, data points
+  - Visual confirmation of successful parsing with green checkmark
+  - Preview updates automatically when file is selected
+- ✅ **Enhanced Create Well Dialog**:
+  - Shows real-time preview of LAS file contents
+  - Displays curve names and data point count
+  - Better visual feedback for users
+  - Maintains existing CSV and single well creation tabs
+- ✅ **Data Structure**:
+  - Well JSON format: `{ id, name, description, data[], logs[], metadata{} }`
+  - `data` array: array of objects, each with curve name -> value mapping
+  - `logs` array: list of curve names (e.g., ["DEPT", "GR", "RESD", "SP"])
+  - Ready for visualization in Well Log Plot panel
+
+### Fresh GitHub Import - Replit Environment Setup ✅ (October 10, 2025)
 - ✅ **Fresh GitHub clone imported and configured successfully**
 - ✅ Installed all npm dependencies (520 packages)
 - ✅ Resolved all LSP/TypeScript errors - codebase clean

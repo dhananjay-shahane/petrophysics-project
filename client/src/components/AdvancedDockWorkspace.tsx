@@ -23,6 +23,8 @@ export interface WellData {
   name: string;
   path: string;
   data?: any;
+  logs?: string[];
+  metadata?: any;
 }
 
 export interface ProjectData {
@@ -137,6 +139,7 @@ export default function AdvancedDockWorkspace() {
   const [projectPath, setProjectPath] = useState<string>("");
   const [projectName, setProjectName] = useState<string>("");
   const [wells, setWells] = useState<WellData[]>([]);
+  const [selectedWell, setSelectedWell] = useState<WellData | null>(null);
   const [projectCreatedAt, setProjectCreatedAt] = useState<string>("");
   const [draggedPanel, setDraggedPanel] = useState<PanelId | null>(null);
   const [projectListOpen, setProjectListOpen] = useState(false);
@@ -553,9 +556,11 @@ export default function AdvancedDockWorkspace() {
     };
 
     const panelSpecificProps = panelId === 'wells' 
-      ? { wells } 
+      ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
       ? { onLoadWells: handleLoadWells }
+      : panelId === 'wellLogPlot'
+      ? { selectedWell }
       : {};
 
     if (panelState.floating) {
@@ -595,6 +600,26 @@ export default function AdvancedDockWorkspace() {
 
   const handleWellCreated = (well: { id: string; name: string; path: string }) => {
     setWells((prev) => [...prev, well]);
+  };
+
+  const handleWellSelect = async (well: WellData) => {
+    setSelectedWell(well);
+    
+    // If well data is not loaded yet, fetch it
+    if (!well.data && well.path) {
+      try {
+        const response = await fetch(`/api/wells/load?filePath=${encodeURIComponent(well.path)}`);
+        if (response.ok) {
+          const wellData = await response.json();
+          const updatedWell = { ...well, data: wellData.data, logs: wellData.logs, metadata: wellData.metadata };
+          setSelectedWell(updatedWell);
+          // Update the well in the list with the loaded data
+          setWells(prev => prev.map(w => w.id === well.id ? updatedWell : w));
+        }
+      } catch (error) {
+        console.error('Error loading well data:', error);
+      }
+    }
   };
 
   const leftPanels = getDockedPanels("left");

@@ -5,6 +5,8 @@ import type { WellData } from "./AdvancedDockWorkspace";
 
 export default function WellsPanelNew({
   wells = [],
+  selectedWell,
+  onWellSelect,
   onClose,
   onMinimize,
   isFloating,
@@ -15,6 +17,8 @@ export default function WellsPanelNew({
   onGeometryChange,
 }: {
   wells?: WellData[];
+  selectedWell?: WellData | null;
+  onWellSelect?: (well: WellData) => void;
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -75,11 +79,16 @@ export default function WellsPanelNew({
               {filteredWells.map((well) => (
                 <div
                   key={well.id}
-                  className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer transition-colors"
+                  onClick={() => onWellSelect?.(well)}
+                  className={`flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer transition-colors ${
+                    selectedWell?.id === well.id ? 'bg-primary/20 border border-primary' : ''
+                  }`}
                   title={well.path}
                 >
-                  <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-sm truncate">{well.name}</span>
+                  <FileText className={`w-4 h-4 flex-shrink-0 ${
+                    selectedWell?.id === well.id ? 'text-primary' : 'text-muted-foreground'
+                  }`} />
+                  <span className="text-sm truncate font-medium">{well.name}</span>
                 </div>
               ))}
             </div>
