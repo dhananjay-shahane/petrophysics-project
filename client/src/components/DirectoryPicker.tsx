@@ -54,7 +54,21 @@ export default function DirectoryPicker({
   onSelectPath,
   initialPath,
 }: DirectoryPickerProps) {
-  const workspaceRoot = "/home/runner/workspace/petrophysics-workplace";
+  // Support multiple OS paths
+  const getWorkspaceRoot = () => {
+    // Detect OS based on path format or use default
+    if (typeof window !== 'undefined') {
+      // Check if Windows path (starts with C:\ or similar)
+      const isWindows = navigator.platform.toLowerCase().includes('win');
+      if (isWindows) {
+        return "C:\\petrophysics-workplace";
+      }
+    }
+    // Default to Linux/Unix path
+    return "/home/runner/workspace/petrophysics-workplace";
+  };
+  
+  const workspaceRoot = getWorkspaceRoot();
   const [currentPath, setCurrentPath] = useState(initialPath || workspaceRoot);
   const [parentPath, setParentPath] = useState("");
   const [directories, setDirectories] = useState<Directory[]>([]);
@@ -66,6 +80,7 @@ export default function DirectoryPicker({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Directory | null>(null);
+  const [selectedFolderForPick, setSelectedFolderForPick] = useState<Directory | null>(null);
   const [renameFolderName, setRenameFolderName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -166,8 +181,22 @@ export default function DirectoryPicker({
   };
 
   const handleConfirm = () => {
-    onSelectPath(currentPath);
+    // Use selected folder if one is chosen, otherwise use current path
+    const pathToSelect = selectedFolderForPick ? selectedFolderForPick.path : currentPath;
+    onSelectPath(pathToSelect);
     onOpenChange(false);
+    setSelectedFolderForPick(null);
+  };
+
+  const handleFolderClick = (dir: Directory) => {
+    // Single click to select folder
+    setSelectedFolderForPick(dir);
+  };
+
+  const handleFolderDoubleClick = (dir: Directory) => {
+    // Double click to navigate into folder
+    loadDirectories(dir.path);
+    setSelectedFolderForPick(null);
   };
 
   const handleDeleteFolder = async () => {
@@ -275,10 +304,9 @@ export default function DirectoryPicker({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Choose Directory Path</DialogTitle>
+            <DialogTitle>Select Folder</DialogTitle>
             <DialogDescription>
-              Browse petrophysics-workplace and select where to create your
-              project
+              Click to select a folder, double-click to open it. Works on Linux, Windows (C:\petrophysics-workplace), and root paths.
             </DialogDescription>
           </DialogHeader>
 
@@ -330,12 +358,40 @@ export default function DirectoryPicker({
                       <ContextMenu key={dir.path}>
                         <ContextMenuTrigger>
                           <button
-                            onClick={() => handleSelectDirectory(dir.path)}
-                            className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20 w-full min-h-[120px]"
+                            onClick={() => handleFolderClick(dir)}
+                            onDoubleClick={() => handleFolderDoubleClick(dir)}
+                            className={`
+                              flex flex-col items-center gap-2 p-4 text-center 
+                              rounded-2xl transition-all duration-200 w-full min-h-[120px]
+                              ${selectedFolderForPick?.path === dir.path 
+                                ? 'bg-primary/10 border-2 border-primary shadow-lg scale-105' 
+                                : 'bg-background hover:bg-accent border-2 border-transparent hover:border-primary/20'
+                              }
+                            `}
                           >
-                            <Folder className="w-12 h-12 text-blue-500 flex-shrink-0" />
+                            <div className={`
+                              p-3 rounded-full transition-colors
+                              ${selectedFolderForPick?.path === dir.path 
+                                ? 'bg-primary/20' 
+                                : 'bg-blue-500/10'
+                              }
+                            `}>
+                              <Folder className={`
+                                w-12 h-12 flex-shrink-0 transition-colors
+                                ${selectedFolderForPick?.path === dir.path 
+                                  ? 'text-primary' 
+                                  : 'text-blue-500'
+                                }
+                              `} />
+                            </div>
                             <span
-                              className="text-sm font-medium w-full break-words line-clamp-2"
+                              className={`
+                                text-sm font-medium w-full break-words line-clamp-2
+                                ${selectedFolderForPick?.path === dir.path 
+                                  ? 'text-primary font-semibold' 
+                                  : ''
+                                }
+                              `}
                               title={dir.name}
                             >
                               {dir.name}
@@ -374,7 +430,7 @@ export default function DirectoryPicker({
               Cancel
             </Button>
             <Button onClick={handleConfirm} disabled={isLoading}>
-              Select This Path
+              {selectedFolderForPick ? `Select "${selectedFolderForPick.name}"` : 'Select Current Folder'}
             </Button>
           </DialogFooter>
         </DialogContent>
