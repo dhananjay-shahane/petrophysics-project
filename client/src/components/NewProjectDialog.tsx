@@ -21,7 +21,7 @@ interface NewProjectDialogProps {
 
 export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
-  const [projectPath, setProjectPath] = useState("/home/runner/workspace/projects");
+  const [projectPath, setProjectPath] = useState("/home/runner/workspace/petrophysics-workplace");
   const [isCreating, setIsCreating] = useState(false);
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const { toast } = useToast();
@@ -106,7 +106,7 @@ export default function NewProjectDialog({ open, onOpenChange }: NewProjectDialo
   const handleDialogClose = (open: boolean) => {
     if (!open && !isCreating) {
       setProjectName("");
-      setProjectPath("/home/runner/workspace/projects");
+      setProjectPath("/home/runner/workspace/petrophysics-workplace");
     }
     onOpenChange(open);
   };

@@ -13,9 +13,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/directories/list", async (req, res) => {
     try {
-      const dirPath = req.query.path as string || process.cwd();
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      
+      await fs.mkdir(workspaceRoot, { recursive: true });
+      
+      const dirPath = req.query.path as string || workspaceRoot;
       
       const resolvedPath = path.resolve(dirPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
       
       try {
         const stats = await fs.stat(resolvedPath);
@@ -24,11 +34,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error: any) {
         if (error.code === 'ENOENT') {
-          const parentPath = path.dirname(resolvedPath);
+          await fs.mkdir(workspaceRoot, { recursive: true });
           return res.json({
-            currentPath: parentPath,
-            parentPath: path.dirname(parentPath),
+            currentPath: workspaceRoot,
+            parentPath: workspaceRoot,
             directories: [],
+            canGoUp: false,
           });
         }
         throw error;
@@ -44,14 +55,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
+      const canGoUp = resolvedPath !== workspaceRoot;
+
       res.json({
         currentPath: resolvedPath,
-        parentPath: path.dirname(resolvedPath),
+        parentPath: canGoUp ? path.dirname(resolvedPath) : resolvedPath,
         directories,
+        canGoUp,
       });
     } catch (error) {
       console.error("Error listing directories:", error);
       res.status(500).json({ error: "Failed to list directories" });
+    }
+  });
+
+  app.post("/api/directories/create", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { parentPath, folderName } = req.body;
+
+      if (!folderName || !folderName.trim()) {
+        return res.status(400).json({ error: "Folder name is required" });
+      }
+
+      const sanitizedName = folderName.trim();
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedName)) {
+        return res.status(400).json({ 
+          error: "Folder name can only contain letters, numbers, hyphens, and underscores" 
+        });
+      }
+
+      const resolvedParentPath = path.resolve(parentPath || workspaceRoot);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedParent = path.normalize(resolvedParentPath + path.sep);
+      
+      if (!normalizedParent.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      const newFolderPath = path.join(resolvedParentPath, sanitizedName);
+      
+      try {
+        await fs.access(newFolderPath);
+        return res.status(400).json({ error: "Folder already exists" });
+      } catch {
+        // Folder doesn't exist, we can create it
+      }
+
+      await fs.mkdir(newFolderPath, { recursive: false });
+
+      res.json({
+        success: true,
+        message: "Folder created successfully",
+        path: newFolderPath,
+        name: sanitizedName
+      });
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      res.status(500).json({ error: "Failed to create folder" });
+    }
+  });
+
+  app.delete("/api/directories/delete", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { folderPath } = req.body;
+
+      if (!folderPath || !folderPath.trim()) {
+        return res.status(400).json({ error: "Folder path is required" });
+      }
+
+      const resolvedPath = path.resolve(folderPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      if (resolvedPath === workspaceRoot) {
+        return res.status(403).json({ error: "Cannot delete workspace root" });
+      }
+
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          return res.status(404).json({ error: "Folder not found" });
+        }
+        throw error;
+      }
+
+      await fs.rm(resolvedPath, { recursive: true, force: true });
+
+      res.json({
+        success: true,
+        message: "Folder deleted successfully",
+        path: resolvedPath
+      });
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+      res.status(500).json({ error: "Failed to delete folder" });
+    }
+  });
+
+  app.put("/api/directories/rename", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { folderPath, newName } = req.body;
+
+      if (!folderPath || !folderPath.trim()) {
+        return res.status(400).json({ error: "Folder path is required" });
+      }
+
+      if (!newName || !newName.trim()) {
+        return res.status(400).json({ error: "New folder name is required" });
+      }
+
+      const sanitizedName = newName.trim();
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedName)) {
+        return res.status(400).json({ 
+          error: "Folder name can only contain letters, numbers, hyphens, and underscores" 
+        });
+      }
+
+      const resolvedPath = path.resolve(folderPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      if (resolvedPath === workspaceRoot) {
+        return res.status(403).json({ error: "Cannot rename workspace root" });
+      }
+
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          return res.status(404).json({ error: "Folder not found" });
+        }
+        throw error;
+      }
+
+      const parentDir = path.dirname(resolvedPath);
+      const newPath = path.join(parentDir, sanitizedName);
+
+      try {
+        await fs.access(newPath);
+        return res.status(400).json({ error: "A folder with this name already exists" });
+      } catch {
+        // Folder doesn't exist, we can rename
+      }
+
+      await fs.rename(resolvedPath, newPath);
+
+      res.json({
+        success: true,
+        message: "Folder renamed successfully",
+        oldPath: resolvedPath,
+        newPath: newPath,
+        newName: sanitizedName
+      });
+    } catch (error) {
+      console.error("Error renaming folder:", error);
+      res.status(500).json({ error: "Failed to rename folder" });
     }
   });
 
