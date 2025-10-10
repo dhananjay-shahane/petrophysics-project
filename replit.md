@@ -90,6 +90,11 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
   - Selected folder displays with primary color highlight and shadow
   - Button text dynamically shows selected folder name
   - Improved visual feedback with smooth transitions
+  - **Multi-OS Path Support with Auto-Fallback**:
+    - Detects OS and tries appropriate path (Windows: C:\petrophysics-workplace, Linux: /home/runner/workspace/petrophysics-workplace)
+    - Automatically tries alternative paths if primary path fails
+    - Supports: Linux, Windows, root paths, and relative paths
+    - Shows notification when using alternative path
 
 ### Previous Features (from original setup)
 - Made DATABASE_URL optional (file storage primary)

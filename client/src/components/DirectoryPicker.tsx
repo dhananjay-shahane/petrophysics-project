@@ -54,8 +54,29 @@ export default function DirectoryPicker({
   onSelectPath,
   initialPath,
 }: DirectoryPickerProps) {
-  // Use Linux path (Replit environment)
-  const workspaceRoot = "/home/runner/workspace/petrophysics-workplace";
+  // Support multiple OS paths with fallback
+  const getWorkspaceRoot = () => {
+    // Detect OS based on path format or use default
+    if (typeof window !== 'undefined') {
+      // Check if Windows path (starts with C:\ or similar)
+      const isWindows = navigator.platform.toLowerCase().includes('win');
+      if (isWindows) {
+        return "C:\\petrophysics-workplace";
+      }
+    }
+    // Default to Linux/Unix path
+    return "/home/runner/workspace/petrophysics-workplace";
+  };
+  
+  // Alternative paths to try if primary fails
+  const alternativePaths = [
+    "/home/runner/workspace/petrophysics-workplace",
+    "C:\\petrophysics-workplace",
+    "/root/petrophysics-workplace",
+    "./petrophysics-workplace",
+  ];
+  
+  const [workspaceRoot, setWorkspaceRoot] = useState(getWorkspaceRoot());
   const [currentPath, setCurrentPath] = useState(initialPath || workspaceRoot);
   const [parentPath, setParentPath] = useState("");
   const [directories, setDirectories] = useState<Directory[]>([]);
@@ -73,7 +94,7 @@ export default function DirectoryPicker({
   const [isRenaming, setIsRenaming] = useState(false);
   const { toast } = useToast();
 
-  const loadDirectories = async (path: string) => {
+  const loadDirectories = async (path: string, tryAlternatives: boolean = false) => {
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -82,6 +103,39 @@ export default function DirectoryPicker({
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // If path fails and we haven't tried alternatives yet, try them
+        if (tryAlternatives && response.status === 403) {
+          for (const altPath of alternativePaths) {
+            if (altPath === path) continue; // Skip the path we just tried
+            
+            try {
+              const altResponse = await fetch(
+                `/api/directories/list?path=${encodeURIComponent(altPath)}`,
+              );
+              
+              if (altResponse.ok) {
+                const altData: DirectoryResponse = await altResponse.json();
+                setWorkspaceRoot(altPath);
+                setCurrentPath(altData.currentPath);
+                setParentPath(altData.parentPath);
+                setDirectories(altData.directories);
+                setCanGoUp(altData.canGoUp ?? true);
+                
+                toast({
+                  title: "Path Updated",
+                  description: `Using alternative path: ${altPath}`,
+                });
+                setIsLoading(false);
+                return; // Success, exit function
+              }
+            } catch (e) {
+              // Continue to next alternative
+              continue;
+            }
+          }
+        }
+        
         throw new Error(errorData.error || "Failed to load directories");
       }
 
@@ -105,7 +159,8 @@ export default function DirectoryPicker({
   useEffect(() => {
     if (open) {
       const pathToLoad = initialPath || workspaceRoot;
-      loadDirectories(pathToLoad);
+      // Try alternative paths if initial path fails
+      loadDirectories(pathToLoad, true);
     }
   }, [open]);
 
