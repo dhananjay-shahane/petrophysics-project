@@ -1,0 +1,15 @@
+{
+  "id": "well-1760095169974-2",
+  "name": "WELL-003",
+  "description": "Development well - primary producer",
+  "createdAt": "2025-10-10T11:19:29.974Z",
+  "updatedAt": "2025-10-10T11:19:29.974Z",
+  "data": null,
+  "logs": [],
+  "metadata": {
+    "lasFile": "WELL-003.las",
+    "depthMin": 950,
+    "depthMax": 2300,
+    "location": "Central Field"
+  }
+}

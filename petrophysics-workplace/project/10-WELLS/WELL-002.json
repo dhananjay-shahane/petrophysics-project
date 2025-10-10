@@ -1,0 +1,15 @@
+{
+  "id": "well-1760095169968-1",
+  "name": "WELL-002",
+  "description": "Appraisal well with good reservoir quality",
+  "createdAt": "2025-10-10T11:19:29.968Z",
+  "updatedAt": "2025-10-10T11:19:29.968Z",
+  "data": null,
+  "logs": [],
+  "metadata": {
+    "lasFile": "WELL-002.las",
+    "depthMin": 1200,
+    "depthMax": 2800,
+    "location": "North Field Block B"
+  }
+}

@@ -169,6 +169,28 @@ export default function AdvancedDockWorkspace() {
     }
   }, [theme]);
 
+  // Load wells when project path changes
+  useEffect(() => {
+    const loadWells = async () => {
+      if (!projectPath || projectPath === "No path selected") {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/wells/list?projectPath=${encodeURIComponent(projectPath)}`);
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          setWells(result.wells || []);
+        }
+      } catch (error) {
+        console.error('Error loading wells:', error);
+      }
+    };
+
+    loadWells();
+  }, [projectPath]);
+
   const togglePanel = (panelId: string) => {
     setPanels((prev) => {
       const panel = prev[panelId as PanelId];

@@ -6,10 +6,108 @@ import path from "path";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
 
+// Helper function to parse LAS file and extract well information
+function parseLASFile(lasContent: string): any {
+  const lines = lasContent.split('\n');
+  const wellInfo: any = {
+    wellName: null,
+    company: null,
+    field: null,
+    location: null,
+    startDepth: null,
+    stopDepth: null,
+    step: null,
+    nullValue: null,
+    curveNames: [],
+    curves: []
+  };
+
+  let currentSection = '';
+  let headerMap: { [key: string]: number } = {};
+
+  for (let line of lines) {
+    line = line.trim();
+    
+    // Skip empty lines and comments
+    if (!line || line.startsWith('#')) continue;
+
+    // Detect sections
+    if (line.startsWith('~')) {
+      currentSection = line.toLowerCase();
+      continue;
+    }
+
+    // Parse Well Information Section
+    if (currentSection.includes('~well')) {
+      const match = line.match(/^([A-Z]+)\s*\.([^:]*):(.*)$/i);
+      if (match) {
+        const mnem = match[1].toUpperCase();
+        const value = match[3].trim();
+        
+        if (mnem === 'WELL') wellInfo.wellName = value;
+        else if (mnem === 'COMP') wellInfo.company = value;
+        else if (mnem === 'FLD') wellInfo.field = value;
+        else if (mnem === 'LOC') wellInfo.location = value;
+        else if (mnem === 'STRT') wellInfo.startDepth = parseFloat(value);
+        else if (mnem === 'STOP') wellInfo.stopDepth = parseFloat(value);
+        else if (mnem === 'STEP') wellInfo.step = parseFloat(value);
+        else if (mnem === 'NULL') wellInfo.nullValue = parseFloat(value);
+      }
+    }
+
+    // Parse Curve Information Section
+    if (currentSection.includes('~curve')) {
+      const match = line.match(/^([A-Z0-9_]+)\s*\./i);
+      if (match) {
+        const curveName = match[1].toUpperCase();
+        wellInfo.curveNames.push(curveName);
+      }
+    }
+
+    // Parse ASCII Data Section
+    if (currentSection.includes('~ascii') || currentSection.includes('~a')) {
+      // Skip if it's just the section header
+      if (line.startsWith('~')) continue;
+      
+      const values = line.trim().split(/\s+/);
+      if (values.length > 0 && !isNaN(parseFloat(values[0]))) {
+        const dataPoint: any = {};
+        wellInfo.curveNames.forEach((name: string, index: number) => {
+          dataPoint[name] = values[index] ? parseFloat(values[index]) : null;
+        });
+        wellInfo.curves.push(dataPoint);
+      }
+    }
+  }
+
+  return wellInfo;
+}
+
 // Helper function to generate realistic LAS file content
 function generateSampleLAS(wellName: string, record: any): string {
-  const depthMin = record.depth_min ? parseFloat(record.depth_min) : 1000;
-  const depthMax = record.depth_max ? parseFloat(record.depth_max) : 2000;
+  // Parse and validate depth values
+  let depthMin = 1000;
+  let depthMax = 2000;
+  
+  if (record.depth_min) {
+    const parsed = parseFloat(record.depth_min);
+    if (isFinite(parsed)) {
+      depthMin = parsed;
+    }
+  }
+  
+  if (record.depth_max) {
+    const parsed = parseFloat(record.depth_max);
+    if (isFinite(parsed)) {
+      depthMax = parsed;
+    }
+  }
+  
+  // Ensure depth_max > depth_min
+  if (depthMax <= depthMin) {
+    depthMax = depthMin + 1000;
+  }
+  
   const location = record.location || "Unknown";
   
   let lasContent = `~Version Information
@@ -416,6 +514,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/wells/list", async (req, res) => {
+    try {
+      const projectPath = req.query.projectPath as string;
+      
+      if (!projectPath || !projectPath.trim()) {
+        return res.status(400).json({ error: "Project path is required" });
+      }
+
+      // Security: Validate that the project path is within the workspace root
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const resolvedProjectPath = path.resolve(projectPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedProjectPath = path.normalize(resolvedProjectPath + path.sep);
+      
+      if (!normalizedProjectPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: project path outside workspace" });
+      }
+
+      const wellsDir = path.join(resolvedProjectPath, "10-WELLS");
+      
+      // Check if wells directory exists
+      try {
+        await fs.access(wellsDir);
+      } catch {
+        // Wells directory doesn't exist, return empty array
+        return res.json({
+          success: true,
+          wells: []
+        });
+      }
+
+      const files = await fs.readdir(wellsDir);
+      const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+      const wells = await Promise.all(
+        jsonFiles.map(async (file) => {
+          try {
+            const filePath = path.join(wellsDir, file);
+            const data = await fs.readFile(filePath, 'utf-8');
+            const wellData = JSON.parse(data);
+            return {
+              id: wellData.id || file.replace('.json', ''),
+              name: wellData.name || file.replace('.json', ''),
+              path: filePath,
+              data: wellData.data || null
+            };
+          } catch (error) {
+            console.error(`Error reading well file ${file}:`, error);
+            return null;
+          }
+        })
+      );
+
+      res.json({
+        success: true,
+        wells: wells.filter(w => w !== null)
+      });
+    } catch (error) {
+      console.error("Error listing wells:", error);
+      return res.json({
+        success: true,
+        wells: []
+      });
+    }
+  });
+
   app.get("/api/projects/list", async (req, res) => {
     try {
       const databaseDir = path.join(process.cwd(), "database");
@@ -530,6 +694,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
   });
 
+  app.post("/api/wells/create-from-las", upload.single("lasFile"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No LAS file uploaded" });
+      }
+
+      const projectPath = req.body.projectPath;
+      if (!projectPath || !projectPath.trim()) {
+        return res.status(400).json({ error: "Project path is required" });
+      }
+
+      const wellsDir = path.join(projectPath, "10-WELLS");
+      const lasDir = path.join(projectPath, "02-INPUT_LAS_FOLDER");
+      
+      // Create directories if they don't exist
+      await fs.mkdir(wellsDir, { recursive: true });
+      await fs.mkdir(lasDir, { recursive: true });
+
+      // Parse LAS file content
+      const lasContent = req.file.buffer.toString('utf-8');
+      const lasFileName = req.file.originalname;
+      
+      // Extract well information from LAS file
+      const wellInfo = parseLASFile(lasContent);
+      
+      if (!wellInfo.wellName) {
+        return res.status(400).json({ error: "Could not extract well name from LAS file" });
+      }
+
+      // Sanitize well name
+      let wellName = wellInfo.wellName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(wellName)) {
+        wellName = "WELL_" + Date.now();
+      }
+
+      const fileName = `${wellName}.json`;
+      const filePath = path.join(wellsDir, fileName);
+
+      // Check if well already exists
+      try {
+        await fs.access(filePath);
+        return res.status(400).json({ error: `A well with name "${wellName}" already exists` });
+      } catch {
+        // File doesn't exist, we can create it
+      }
+
+      // Create well data with parsed LAS information
+      const wellData = {
+        id: `well-${Date.now()}`,
+        name: wellName,
+        description: wellInfo.field || wellInfo.company || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: wellInfo.curves,
+        logs: wellInfo.curveNames || [],
+        metadata: {
+          lasFile: lasFileName,
+          depthMin: wellInfo.startDepth,
+          depthMax: wellInfo.stopDepth,
+          location: wellInfo.location || null,
+          company: wellInfo.company || null,
+          field: wellInfo.field || null,
+          step: wellInfo.step || null,
+          null: wellInfo.nullValue || null
+        }
+      };
+
+      // Save well JSON file
+      await fs.writeFile(filePath, JSON.stringify(wellData, null, 2), 'utf-8');
+
+      // Copy LAS file to input folder
+      const lasFilePath = path.join(lasDir, lasFileName);
+      await fs.writeFile(lasFilePath, lasContent, 'utf-8');
+
+      res.json({
+        success: true,
+        message: `Well "${wellName}" created successfully from LAS file`,
+        filePath: filePath,
+        well: wellData
+      });
+    } catch (error: any) {
+      console.error("Error creating well from LAS file:", error);
+      res.status(500).json({ error: "Failed to create well from LAS file: " + error.message });
+    }
+  });
+
   app.post("/api/wells/create-from-csv", upload.single("csvFile"), async (req, res) => {
     try {
       if (!req.file) {
@@ -574,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           if (!/^[a-zA-Z0-9_-]+$/.test(wellName)) {
-            errors.push(`Row ${index + 1}: Invalid well name "${wellName}"`);
+            errors.push(`Row ${index + 1}: Invalid well name "${wellName}" - only letters, numbers, hyphens, and underscores allowed`);
             continue;
           }
 
@@ -590,6 +841,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // File doesn't exist, we can create it
           }
 
+          // Validate depth values
+          let depthMin = null;
+          let depthMax = null;
+          
+          if (record.depth_min) {
+            const parsed = parseFloat(record.depth_min);
+            if (!isFinite(parsed)) {
+              errors.push(`Row ${index + 1}: Invalid depth_min value "${record.depth_min}"`);
+              continue;
+            }
+            depthMin = parsed;
+          }
+          
+          if (record.depth_max) {
+            const parsed = parseFloat(record.depth_max);
+            if (!isFinite(parsed)) {
+              errors.push(`Row ${index + 1}: Invalid depth_max value "${record.depth_max}"`);
+              continue;
+            }
+            depthMax = parsed;
+          }
+          
+          // Check depth ordering if both are provided
+          if (depthMin !== null && depthMax !== null && depthMax <= depthMin) {
+            errors.push(`Row ${index + 1}: depth_max (${depthMax}) must be greater than depth_min (${depthMin})`);
+            continue;
+          }
+
           // Create well data with LAS information
           const wellData = {
             id: `well-${Date.now()}-${index}`,
@@ -601,8 +880,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             logs: [],
             metadata: {
               lasFile: record.las_file?.trim() || null,
-              depthMin: record.depth_min ? parseFloat(record.depth_min) : null,
-              depthMax: record.depth_max ? parseFloat(record.depth_max) : null,
+              depthMin: depthMin,
+              depthMax: depthMax,
               location: record.location?.trim() || null
             }
           };

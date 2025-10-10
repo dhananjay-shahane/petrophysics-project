@@ -32,6 +32,7 @@ export default function NewWellDialog({
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [lasFile, setLasFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -181,16 +182,82 @@ export default function NewWellDialog({
     }
   };
 
+  const handleLasUpload = async () => {
+    if (!lasFile) {
+      toast({
+        title: "Error",
+        description: "Please select a LAS file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!projectPath || projectPath === "No path selected") {
+      toast({
+        title: "Error",
+        description: "No project is currently open. Please open or create a project first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("lasFile", lasFile);
+      formData.append("projectPath", projectPath);
+
+      const response = await fetch("/api/wells/create-from-las", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create well from LAS file");
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Success",
+        description: `Well "${result.well.name}" created successfully from LAS file`,
+      });
+
+      if (onWellCreated) {
+        onWellCreated({
+          id: result.well.id,
+          name: result.well.name,
+          path: result.filePath,
+        });
+      }
+
+      setLasFile(null);
+      onOpenChange(false);
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to create well from LAS file. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDialogClose = (open: boolean) => {
     if (!open && !isCreating && !isUploading) {
       setWellName("");
       setDescription("");
       setCsvFile(null);
+      setLasFile(null);
     }
     onOpenChange(open);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.name.endsWith('.csv')) {
@@ -205,19 +272,35 @@ export default function NewWellDialog({
     }
   };
 
+  const handleLasFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.las') && !file.name.endsWith('.LAS')) {
+        toast({
+          title: "Error",
+          description: "Please select a LAS file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setLasFile(file);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Well</DialogTitle>
           <DialogDescription>
-            Create a single well or upload a CSV file with multiple wells and LAS data.
+            Create a single well, upload a LAS file, or upload a CSV file with multiple wells.
           </DialogDescription>
         </DialogHeader>
         
         <Tabs defaultValue="single" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="single">Single Well</TabsTrigger>
+            <TabsTrigger value="las">Upload LAS</TabsTrigger>
             <TabsTrigger value="csv">Upload CSV</TabsTrigger>
           </TabsList>
           
@@ -274,6 +357,62 @@ export default function NewWellDialog({
             </DialogFooter>
           </TabsContent>
           
+          <TabsContent value="las" className="space-y-4 pt-4">
+            <div className="grid gap-2">
+              <Label htmlFor="las-file">LAS File</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="las-file"
+                  type="file"
+                  accept=".las,.LAS"
+                  onChange={handleLasFileChange}
+                  disabled={isUploading}
+                  className="cursor-pointer"
+                />
+              </div>
+              {lasFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {lasFile.name} ({(lasFile.size / 1024).toFixed(2)} KB)
+                </p>
+              )}
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg text-sm">
+              <p className="font-medium mb-2">LAS File Upload:</p>
+              <p className="text-muted-foreground mb-2">Upload a LAS (Log ASCII Standard) file to create a well:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>The well name will be extracted from the LAS file header</li>
+                <li>Well log data and curves will be parsed automatically</li>
+                <li>Data will be saved in JSON format in the 10-WELLS folder</li>
+                <li>LAS file will be copied to 02-INPUT_LAS_FOLDER</li>
+              </ul>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium">Current Project:</p>
+              <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
+              {projectPath && projectPath !== "No path selected" && (
+                <p className="font-mono text-xs mt-1">
+                  Well will be saved to: {projectPath}/10-WELLS/
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleLasUpload} disabled={isUploading || !lasFile}>
+                <Upload className="w-4 h-4 mr-2" />
+                {isUploading ? "Uploading..." : "Upload LAS File"}
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+          
           <TabsContent value="csv" className="space-y-4 pt-4">
             <div className="grid gap-2">
               <Label htmlFor="csv-file">CSV File</Label>
@@ -282,7 +421,7 @@ export default function NewWellDialog({
                   id="csv-file"
                   type="file"
                   accept=".csv"
-                  onChange={handleFileChange}
+                  onChange={handleCsvFileChange}
                   disabled={isUploading}
                   className="cursor-pointer"
                 />
