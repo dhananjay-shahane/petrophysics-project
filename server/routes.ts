@@ -13,12 +13,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/directories/list", async (req, res) => {
     try {
-      const dirPath = req.query.path as string || process.cwd();
       const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const dirPath = req.query.path as string || workspaceRoot;
       
       const resolvedPath = path.resolve(dirPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
       
-      if (!resolvedPath.startsWith(workspaceRoot)) {
+      if (!normalizedPath.startsWith(normalizedRoot)) {
         return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
       }
       
@@ -65,8 +67,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/directories/create", async (req, res) => {
     try {
-      const { parentPath, folderName } = req.body;
       const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const { parentPath, folderName } = req.body;
 
       if (!folderName || !folderName.trim()) {
         return res.status(400).json({ error: "Folder name is required" });
@@ -81,8 +83,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const resolvedParentPath = path.resolve(parentPath || workspaceRoot);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedParent = path.normalize(resolvedParentPath + path.sep);
       
-      if (!resolvedParentPath.startsWith(workspaceRoot)) {
+      if (!normalizedParent.startsWith(normalizedRoot)) {
         return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
       }
 
