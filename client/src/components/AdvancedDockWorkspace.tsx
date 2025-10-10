@@ -9,11 +9,13 @@ import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
 import FeedbackPanelNew from "./FeedbackPanelNew";
 import WellLogPlotPanel from "./WellLogPlotPanel";
+import CrossPlotPanel from "./CrossPlotPanel";
+import LogPlotPanel from "./LogPlotPanel";
 import { Resizable } from "re-resizable";
 import BottomTaskbar from "./BottomTaskbar";
 import { useToast } from "@/hooks/use-toast";
 
-type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot";
+type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot" | "crossPlot" | "logPlot";
 
 export interface WellData {
   id: string;
@@ -51,6 +53,8 @@ const PANEL_COMPONENTS: Record<PanelId, any> = {
   dataBrowser: DataBrowserPanelNew,
   feedback: FeedbackPanelNew,
   wellLogPlot: WellLogPlotPanel,
+  crossPlot: CrossPlotPanel,
+  logPlot: LogPlotPanel,
 };
 
 const PANEL_TITLES: Record<PanelId, string> = {
@@ -59,6 +63,8 @@ const PANEL_TITLES: Record<PanelId, string> = {
   dataBrowser: "Data Browser",
   feedback: "Feedback",
   wellLogPlot: "Well Log Plot",
+  crossPlot: "Cross Plot",
+  logPlot: "Log Plot",
 };
 
 function DraggableWrapper({ id, children }: { id: string; children: React.ReactNode }) {
@@ -122,6 +128,8 @@ export default function AdvancedDockWorkspace() {
     dataBrowser: { visible: true, floating: false, minimized: false, dockZone: "right" },
     feedback: { visible: true, floating: false, minimized: false, dockZone: "bottom" },
     wellLogPlot: { visible: true, floating: false, minimized: false, dockZone: "center" },
+    crossPlot: { visible: false, floating: false, minimized: false, dockZone: "center" },
+    logPlot: { visible: false, floating: false, minimized: false, dockZone: "center" },
   });
 
   const [theme, setTheme] = useState<"light" | "dark">("light");

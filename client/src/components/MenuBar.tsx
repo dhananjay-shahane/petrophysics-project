@@ -144,6 +144,16 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
+            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-view">
+              View
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => onTogglePanel("crossPlot")} data-testid="menu-cross-plot">Cross Plot</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTogglePanel("logPlot")} data-testid="menu-log-plot">Log Plot</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
             <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-geolog">
               Geolog
             </DropdownMenuTrigger>
