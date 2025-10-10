@@ -14,8 +14,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/directories/list", async (req, res) => {
     try {
       const dirPath = req.query.path as string || process.cwd();
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
       
       const resolvedPath = path.resolve(dirPath);
+      
+      if (!resolvedPath.startsWith(workspaceRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
       
       try {
         const stats = await fs.stat(resolvedPath);
@@ -44,14 +49,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
+      const canGoUp = resolvedPath !== workspaceRoot;
+
       res.json({
         currentPath: resolvedPath,
-        parentPath: path.dirname(resolvedPath),
+        parentPath: canGoUp ? path.dirname(resolvedPath) : resolvedPath,
         directories,
+        canGoUp,
       });
     } catch (error) {
       console.error("Error listing directories:", error);
       res.status(500).json({ error: "Failed to list directories" });
+    }
+  });
+
+  app.post("/api/directories/create", async (req, res) => {
+    try {
+      const { parentPath, folderName } = req.body;
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+
+      if (!folderName || !folderName.trim()) {
+        return res.status(400).json({ error: "Folder name is required" });
+      }
+
+      const sanitizedName = folderName.trim();
+      
+      if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedName)) {
+        return res.status(400).json({ 
+          error: "Folder name can only contain letters, numbers, hyphens, and underscores" 
+        });
+      }
+
+      const resolvedParentPath = path.resolve(parentPath || workspaceRoot);
+      
+      if (!resolvedParentPath.startsWith(workspaceRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      const newFolderPath = path.join(resolvedParentPath, sanitizedName);
+      
+      try {
+        await fs.access(newFolderPath);
+        return res.status(400).json({ error: "Folder already exists" });
+      } catch {
+        // Folder doesn't exist, we can create it
+      }
+
+      await fs.mkdir(newFolderPath, { recursive: false });
+
+      res.json({
+        success: true,
+        message: "Folder created successfully",
+        path: newFolderPath,
+        name: sanitizedName
+      });
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      res.status(500).json({ error: "Failed to create folder" });
     }
   });
 
