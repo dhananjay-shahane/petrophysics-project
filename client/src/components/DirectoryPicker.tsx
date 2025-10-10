@@ -54,21 +54,8 @@ export default function DirectoryPicker({
   onSelectPath,
   initialPath,
 }: DirectoryPickerProps) {
-  // Support multiple OS paths
-  const getWorkspaceRoot = () => {
-    // Detect OS based on path format or use default
-    if (typeof window !== 'undefined') {
-      // Check if Windows path (starts with C:\ or similar)
-      const isWindows = navigator.platform.toLowerCase().includes('win');
-      if (isWindows) {
-        return "C:\\petrophysics-workplace";
-      }
-    }
-    // Default to Linux/Unix path
-    return "/home/runner/workspace/petrophysics-workplace";
-  };
-  
-  const workspaceRoot = getWorkspaceRoot();
+  // Use Linux path (Replit environment)
+  const workspaceRoot = "/home/runner/workspace/petrophysics-workplace";
   const [currentPath, setCurrentPath] = useState(initialPath || workspaceRoot);
   const [parentPath, setParentPath] = useState("");
   const [directories, setDirectories] = useState<Directory[]>([]);
@@ -306,7 +293,7 @@ export default function DirectoryPicker({
           <DialogHeader>
             <DialogTitle>Select Folder</DialogTitle>
             <DialogDescription>
-              Click to select a folder, double-click to open it. Works on Linux, Windows (C:\petrophysics-workplace), and root paths.
+              Click to select a folder, double-click to navigate into it
             </DialogDescription>
           </DialogHeader>
 
