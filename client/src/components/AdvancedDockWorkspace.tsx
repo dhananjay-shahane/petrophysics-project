@@ -4,6 +4,7 @@ import MenuBar from "./MenuBar";
 import ProjectInfoBar from "./ProjectInfoBar";
 import ProjectListDialog from "./ProjectListDialog";
 import DirectoryPicker from "./DirectoryPicker";
+import NewWellDialog from "./NewWellDialog";
 import WellsPanelNew from "./WellsPanelNew";
 import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
@@ -141,6 +142,7 @@ export default function AdvancedDockWorkspace() {
   const [projectListOpen, setProjectListOpen] = useState(false);
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false);
   const [directoryPickerMode, setDirectoryPickerMode] = useState<"import" | "open">("open");
+  const [newWellDialogOpen, setNewWellDialogOpen] = useState(false);
   const [dropZones, setDropZones] = useState<DropZone[]>([
     { id: "left", zone: "left" },
     { id: "right", zone: "right" },
@@ -565,6 +567,14 @@ export default function AdvancedDockWorkspace() {
     return panel;
   };
 
+  const handleOpenNewWellDialog = () => {
+    setNewWellDialogOpen(true);
+  };
+
+  const handleWellCreated = (well: { id: string; name: string; path: string }) => {
+    setWells((prev) => [...prev, well]);
+  };
+
   const leftPanels = getDockedPanels("left");
   const rightPanels = getDockedPanels("right");
   const bottomPanels = getDockedPanels("bottom");
@@ -587,6 +597,7 @@ export default function AdvancedDockWorkspace() {
           onOpenProjectList={() => setProjectListOpen(true)}
           onOpenImportPicker={handleOpenImportPicker}
           onOpenProjectPicker={handleOpenProjectPicker}
+          onNewWell={handleOpenNewWellDialog}
         />
         
         <ProjectInfoBar 
@@ -716,6 +727,13 @@ export default function AdvancedDockWorkspace() {
           open={directoryPickerOpen}
           onOpenChange={setDirectoryPickerOpen}
           onSelectPath={handleDirectorySelect}
+        />
+
+        <NewWellDialog
+          open={newWellDialogOpen}
+          onOpenChange={setNewWellDialogOpen}
+          projectPath={projectPath}
+          onWellCreated={handleWellCreated}
         />
       </div>
     </DndContext>
