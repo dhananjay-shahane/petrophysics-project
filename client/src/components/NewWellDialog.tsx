@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Upload } from "lucide-react";
 
 interface NewWellDialogProps {
   open: boolean;
@@ -29,6 +31,8 @@ export default function NewWellDialog({
   const [wellName, setWellName] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   const handleCreateWell = async () => {
@@ -109,76 +113,225 @@ export default function NewWellDialog({
     }
   };
 
+  const handleCsvUpload = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!projectPath || projectPath === "No path selected") {
+      toast({
+        title: "Error",
+        description: "No project is currently open. Please open or create a project first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("csvFile", csvFile);
+      formData.append("projectPath", projectPath);
+
+      const response = await fetch("/api/wells/create-from-csv", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create wells from CSV");
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Success",
+        description: `Successfully created ${result.wellsCreated} well(s) from CSV`,
+      });
+
+      // Notify parent about the first well created (for backward compatibility)
+      if (result.wells && result.wells.length > 0 && onWellCreated) {
+        result.wells.forEach((well: any) => {
+          onWellCreated({
+            id: well.id,
+            name: well.name,
+            path: well.path,
+          });
+        });
+      }
+
+      setCsvFile(null);
+      onOpenChange(false);
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to create wells from CSV. Please try again.";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDialogClose = (open: boolean) => {
-    if (!open && !isCreating) {
+    if (!open && !isCreating && !isUploading) {
       setWellName("");
       setDescription("");
+      setCsvFile(null);
     }
     onOpenChange(open);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast({
+          title: "Error",
+          description: "Please select a CSV file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCsvFile(file);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Well</DialogTitle>
           <DialogDescription>
-            Enter well details to create a new well in the current project.
+            Create a single well or upload a CSV file with multiple wells and LAS data.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="well-name">Well Name</Label>
-            <Input
-              id="well-name"
-              placeholder="Enter well name (e.g., WELL-001)"
-              value={wellName}
-              onChange={(e) => setWellName(e.target.value)}
-              disabled={isCreating}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !isCreating) {
-                  handleCreateWell();
-                }
-              }}
-            />
-          </div>
+        <Tabs defaultValue="single" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="single">Single Well</TabsTrigger>
+            <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="single" className="space-y-4 pt-4">
+            <div className="grid gap-2">
+              <Label htmlFor="well-name">Well Name</Label>
+              <Input
+                id="well-name"
+                placeholder="Enter well name (e.g., WELL-001)"
+                value={wellName}
+                onChange={(e) => setWellName(e.target.value)}
+                disabled={isCreating}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isCreating) {
+                    handleCreateWell();
+                  }
+                }}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="well-description">Description (Optional)</Label>
-            <Textarea
-              id="well-description"
-              placeholder="Enter well description or notes..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={isCreating}
-              rows={3}
-            />
-          </div>
+            <div className="grid gap-2">
+              <Label htmlFor="well-description">Description (Optional)</Label>
+              <Textarea
+                id="well-description"
+                placeholder="Enter well description or notes..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={isCreating}
+                rows={3}
+              />
+            </div>
 
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium">Current Project:</p>
-            <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
-            {projectPath && projectPath !== "No path selected" && (
-              <p className="font-mono text-xs mt-1">
-                Will save to: {projectPath}/10-WELLS/{wellName || "[well-name]"}.json
-              </p>
-            )}
-          </div>
-        </div>
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium">Current Project:</p>
+              <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
+              {projectPath && projectPath !== "No path selected" && (
+                <p className="font-mono text-xs mt-1">
+                  Will save to: {projectPath}/10-WELLS/{wellName || "[well-name]"}.json
+                </p>
+              )}
+            </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isCreating}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleCreateWell} disabled={isCreating}>
-            {isCreating ? "Creating..." : "Create Well"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCreateWell} disabled={isCreating}>
+                {isCreating ? "Creating..." : "Create Well"}
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+          
+          <TabsContent value="csv" className="space-y-4 pt-4">
+            <div className="grid gap-2">
+              <Label htmlFor="csv-file">CSV File</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="csv-file"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                  className="cursor-pointer"
+                />
+              </div>
+              {csvFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {csvFile.name} ({(csvFile.size / 1024).toFixed(2)} KB)
+                </p>
+              )}
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg text-sm">
+              <p className="font-medium mb-2">CSV Format:</p>
+              <p className="text-muted-foreground mb-2">The CSV file should contain the following columns:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li><code>well_name</code> - Name of the well (required)</li>
+                <li><code>description</code> - Well description (optional)</li>
+                <li><code>las_file</code> - LAS filename in 02-INPUT_LAS_FOLDER (optional)</li>
+                <li><code>depth_min</code> - Minimum depth (optional)</li>
+                <li><code>depth_max</code> - Maximum depth (optional)</li>
+                <li><code>location</code> - Well location (optional)</li>
+              </ul>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium">Current Project:</p>
+              <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
+              {projectPath && projectPath !== "No path selected" && (
+                <p className="font-mono text-xs mt-1">
+                  Wells will be saved to: {projectPath}/10-WELLS/
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCsvUpload} disabled={isUploading || !csvFile}>
+                <Upload className="w-4 h-4 mr-2" />
+                {isUploading ? "Uploading..." : "Upload & Create Wells"}
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

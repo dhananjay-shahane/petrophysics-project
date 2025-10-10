@@ -3,6 +3,75 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import fs from "fs/promises";
 import path from "path";
+import multer from "multer";
+import { parse } from "csv-parse/sync";
+
+// Helper function to generate realistic LAS file content
+function generateSampleLAS(wellName: string, record: any): string {
+  const depthMin = record.depth_min ? parseFloat(record.depth_min) : 1000;
+  const depthMax = record.depth_max ? parseFloat(record.depth_max) : 2000;
+  const location = record.location || "Unknown";
+  
+  let lasContent = `~Version Information
+VERS.   2.0     : CWLS log ASCII Standard - VERSION 2.0
+WRAP.   NO      : One line per depth step
+
+~Well Information
+#MNEM.UNIT  DATA                         DESCRIPTION
+#---------  -----------------------------  -----------------------------------
+STRT.M      ${depthMin}                   : START DEPTH
+STOP.M      ${depthMax}                   : STOP DEPTH
+STEP.M      0.5                           : STEP
+NULL.       -999.25                       : NULL VALUE
+COMP.       Sample Company                : COMPANY
+WELL.       ${wellName}                   : WELL
+FLD .       Sample Field                  : FIELD
+LOC .       ${location}                   : LOCATION
+CTRY.       USA                          : COUNTRY
+SRVC.       Sample Service                : SERVICE COMPANY
+DATE.       ${new Date().toISOString().split('T')[0]}  : LOG DATE
+
+~Curve Information
+#MNEM.UNIT      Curve Description
+#---------      -----------------------------
+DEPT.M          : Depth
+GR  .GAPI       : Gamma Ray
+NPHI.V/V        : Neutron Porosity
+RHOB.G/C3       : Bulk Density
+RT  .OHMM       : Deep Resistivity
+PHIT.V/V        : Total Porosity
+SW  .V/V        : Water Saturation
+
+~Parameter Information
+#MNEM.UNIT  VALUE       DESCRIPTION
+#---------  ----------  -----------------------------
+MUD .       WBM         : Mud Type
+BHT .DEGC   85          : Bottom Hole Temperature
+BS  .MM     215.9       : Bit Size
+FD  .K/M3   1100        : Fluid Density
+
+~ASCII
+#DEPT    GR      NPHI    RHOB    RT      PHIT    SW
+`;
+
+  // Generate realistic well log data
+  const numPoints = Math.floor((depthMax - depthMin) / 0.5) + 1;
+  for (let i = 0; i < numPoints; i++) {
+    const depth = depthMin + (i * 0.5);
+    
+    // Generate realistic petrophysical values with some variation
+    const baseGR = 40 + Math.sin(i * 0.1) * 30 + Math.random() * 10;
+    const baseNPHI = 0.20 + Math.sin(i * 0.15) * 0.05 + Math.random() * 0.02;
+    const baseRHOB = 2.35 + Math.sin(i * 0.12) * 0.15 + Math.random() * 0.05;
+    const baseRT = 10 + Math.sin(i * 0.08) * 20 + Math.random() * 5;
+    const basePHIT = 0.18 + Math.sin(i * 0.14) * 0.04 + Math.random() * 0.02;
+    const baseSW = 0.35 + Math.sin(i * 0.1) * 0.25 + Math.random() * 0.1;
+    
+    lasContent += `${depth.toFixed(2).padStart(8)}  ${baseGR.toFixed(2).padStart(7)}  ${baseNPHI.toFixed(4).padStart(7)}  ${baseRHOB.toFixed(3).padStart(7)}  ${baseRT.toFixed(2).padStart(7)}  ${basePHIT.toFixed(4).padStart(7)}  ${baseSW.toFixed(4).padStart(7)}\n`;
+  }
+
+  return lasContent;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -452,6 +521,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating well:", error);
       res.status(500).json({ error: "Failed to create well" });
+    }
+  });
+
+  // Configure multer for CSV file uploads
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+
+  app.post("/api/wells/create-from-csv", upload.single("csvFile"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No CSV file uploaded" });
+      }
+
+      const projectPath = req.body.projectPath;
+      if (!projectPath || !projectPath.trim()) {
+        return res.status(400).json({ error: "Project path is required" });
+      }
+
+      // Parse CSV file
+      const csvContent = req.file.buffer.toString('utf-8');
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      });
+
+      if (!Array.isArray(records) || records.length === 0) {
+        return res.status(400).json({ error: "CSV file is empty or invalid" });
+      }
+
+      const wellsDir = path.join(projectPath, "10-WELLS");
+      const lasDir = path.join(projectPath, "02-INPUT_LAS_FOLDER");
+      
+      // Create directories if they don't exist
+      await fs.mkdir(wellsDir, { recursive: true });
+      await fs.mkdir(lasDir, { recursive: true });
+
+      const createdWells: any[] = [];
+      const errors: string[] = [];
+
+      for (let index = 0; index < records.length; index++) {
+        const record = records[index] as any;
+        try {
+          const wellName = record.well_name?.trim();
+          
+          if (!wellName) {
+            errors.push(`Row ${index + 1}: Missing well_name`);
+            continue;
+          }
+
+          if (!/^[a-zA-Z0-9_-]+$/.test(wellName)) {
+            errors.push(`Row ${index + 1}: Invalid well name "${wellName}"`);
+            continue;
+          }
+
+          const fileName = `${wellName}.json`;
+          const filePath = path.join(wellsDir, fileName);
+
+          // Check if well already exists
+          try {
+            await fs.access(filePath);
+            errors.push(`Row ${index + 1}: Well "${wellName}" already exists`);
+            continue;
+          } catch {
+            // File doesn't exist, we can create it
+          }
+
+          // Create well data with LAS information
+          const wellData = {
+            id: `well-${Date.now()}-${index}`,
+            name: wellName,
+            description: record.description?.trim() || "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            data: null,
+            logs: [],
+            metadata: {
+              lasFile: record.las_file?.trim() || null,
+              depthMin: record.depth_min ? parseFloat(record.depth_min) : null,
+              depthMax: record.depth_max ? parseFloat(record.depth_max) : null,
+              location: record.location?.trim() || null
+            }
+          };
+
+          // If LAS file is specified, create a sample LAS file
+          if (record.las_file?.trim()) {
+            const lasFileName = record.las_file.trim();
+            const lasFilePath = path.join(lasDir, lasFileName);
+            
+            // Generate sample LAS file content with realistic data
+            const lasContent = generateSampleLAS(wellName, record);
+            await fs.writeFile(lasFilePath, lasContent, 'utf-8');
+          }
+
+          await fs.writeFile(filePath, JSON.stringify(wellData, null, 2), 'utf-8');
+
+          createdWells.push({
+            id: wellData.id,
+            name: wellData.name,
+            path: filePath
+          });
+        } catch (error: any) {
+          errors.push(`Row ${index + 1}: ${error.message}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        wellsCreated: createdWells.length,
+        wells: createdWells,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Successfully created ${createdWells.length} well(s)${errors.length > 0 ? ` with ${errors.length} error(s)` : ''}`
+      });
+    } catch (error: any) {
+      console.error("Error creating wells from CSV:", error);
+      res.status(500).json({ error: "Failed to create wells from CSV: " + error.message });
     }
   });
 
