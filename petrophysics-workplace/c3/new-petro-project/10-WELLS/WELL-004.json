@@ -1,0 +1,15 @@
+{
+  "id": "well-1760097001200-3",
+  "name": "WELL-004",
+  "description": "Horizontal well targeting shale formation",
+  "createdAt": "2025-10-10T11:50:01.201Z",
+  "updatedAt": "2025-10-10T11:50:01.201Z",
+  "data": null,
+  "logs": [],
+  "metadata": {
+    "lasFile": "WELL-004.las",
+    "depthMin": 1500,
+    "depthMax": 3200,
+    "location": "East Field Block C"
+  }
+}

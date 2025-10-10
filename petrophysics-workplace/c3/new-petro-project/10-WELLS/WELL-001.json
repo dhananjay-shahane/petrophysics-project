@@ -1,0 +1,15 @@
+{
+  "id": "well-1760097000965-0",
+  "name": "WELL-001",
+  "description": "Exploration well in North Field",
+  "createdAt": "2025-10-10T11:50:00.965Z",
+  "updatedAt": "2025-10-10T11:50:00.965Z",
+  "data": null,
+  "logs": [],
+  "metadata": {
+    "lasFile": "WELL-001.las",
+    "depthMin": 1000,
+    "depthMax": 2500,
+    "location": "North Field Block A"
+  }
+}

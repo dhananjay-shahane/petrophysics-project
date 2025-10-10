@@ -1,0 +1,15 @@
+{
+  "id": "well-1760097001251-4",
+  "name": "WELL-005",
+  "description": "Observation well for pressure monitoring",
+  "createdAt": "2025-10-10T11:50:01.251Z",
+  "updatedAt": "2025-10-10T11:50:01.251Z",
+  "data": null,
+  "logs": [],
+  "metadata": {
+    "lasFile": "WELL-005.las",
+    "depthMin": 1100,
+    "depthMax": 2600,
+    "location": "West Field"
+  }
+}
