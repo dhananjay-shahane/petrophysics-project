@@ -14,6 +14,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/directories/list", async (req, res) => {
     try {
       const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      
+      await fs.mkdir(workspaceRoot, { recursive: true });
+      
       const dirPath = req.query.path as string || workspaceRoot;
       
       const resolvedPath = path.resolve(dirPath);
@@ -31,11 +34,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error: any) {
         if (error.code === 'ENOENT') {
-          const parentPath = path.dirname(resolvedPath);
+          await fs.mkdir(workspaceRoot, { recursive: true });
           return res.json({
-            currentPath: parentPath,
-            parentPath: path.dirname(parentPath),
+            currentPath: workspaceRoot,
+            parentPath: workspaceRoot,
             directories: [],
+            canGoUp: false,
           });
         }
         throw error;

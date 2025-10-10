@@ -74,8 +74,10 @@ export default function DirectoryPicker({
   const loadDirectories = async (path: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/directories/list?path=${encodeURIComponent(path)}`);
-      
+      const response = await fetch(
+        `/api/directories/list?path=${encodeURIComponent(path)}`,
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to load directories");
@@ -89,7 +91,8 @@ export default function DirectoryPicker({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load directories",
+        description:
+          error instanceof Error ? error.message : "Failed to load directories",
         variant: "destructive",
       });
     } finally {
@@ -153,7 +156,8 @@ export default function DirectoryPicker({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create folder",
+        description:
+          error instanceof Error ? error.message : "Failed to create folder",
         variant: "destructive",
       });
     } finally {
@@ -197,7 +201,8 @@ export default function DirectoryPicker({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete folder",
+        description:
+          error instanceof Error ? error.message : "Failed to delete folder",
         variant: "destructive",
       });
     } finally {
@@ -245,7 +250,8 @@ export default function DirectoryPicker({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to rename folder",
+        description:
+          error instanceof Error ? error.message : "Failed to rename folder",
         variant: "destructive",
       });
     } finally {
@@ -271,7 +277,8 @@ export default function DirectoryPicker({
           <DialogHeader>
             <DialogTitle>Choose Directory Path</DialogTitle>
             <DialogDescription>
-              Browse petrophysics-workplace and select where to create your project
+              Browse petrophysics-workplace and select where to create your
+              project
             </DialogDescription>
           </DialogHeader>
 
@@ -287,7 +294,9 @@ export default function DirectoryPicker({
                 <ArrowUp className="w-4 h-4" />
               </Button>
               <div className="flex-1 px-3 py-2 bg-muted rounded-md font-mono text-sm truncate">
-                {currentPath.replace('/home/runner/workspace/', '')}
+                {currentPath === workspaceRoot 
+                  ? "petrophysics-workplace" 
+                  : currentPath.replace(workspaceRoot + "/", "")}
               </div>
               <Button
                 variant="outline"
@@ -311,7 +320,9 @@ export default function DirectoryPicker({
                   <div className="text-center py-12 text-muted-foreground">
                     <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No folders found</p>
-                    <p className="text-sm mt-1">Create a new folder to get started</p>
+                    <p className="text-sm mt-1">
+                      Create a new folder to get started
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
@@ -323,17 +334,22 @@ export default function DirectoryPicker({
                             className="flex flex-col items-center gap-2 p-4 text-center hover:bg-accent rounded-lg transition-colors border border-transparent hover:border-primary/20 w-full min-h-[120px]"
                           >
                             <Folder className="w-12 h-12 text-blue-500 flex-shrink-0" />
-                            <span className="text-sm font-medium w-full break-words line-clamp-2" title={dir.name}>
+                            <span
+                              className="text-sm font-medium w-full break-words line-clamp-2"
+                              title={dir.name}
+                            >
                               {dir.name}
                             </span>
                           </button>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
-                          <ContextMenuItem onClick={() => handleContextMenuRename(dir)}>
+                          <ContextMenuItem
+                            onClick={() => handleContextMenuRename(dir)}
+                          >
                             <Pencil className="w-4 h-4 mr-2" />
                             Rename
                           </ContextMenuItem>
-                          <ContextMenuItem 
+                          <ContextMenuItem
                             onClick={() => handleContextMenuDelete(dir)}
                             className="text-destructive focus:text-destructive"
                           >
@@ -369,7 +385,8 @@ export default function DirectoryPicker({
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>
-              Enter a name for the new folder (letters, numbers, hyphens, and underscores only)
+              Enter a name for the new folder (letters, numbers, hyphens, and
+              underscores only)
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -408,7 +425,8 @@ export default function DirectoryPicker({
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <DialogDescription>
-              Enter a new name for the folder (letters, numbers, hyphens, and underscores only)
+              Enter a new name for the folder (letters, numbers, hyphens, and
+              underscores only)
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -448,11 +466,13 @@ export default function DirectoryPicker({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Folder</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedFolder?.name}"? This action cannot be undone and will permanently delete the folder and all its contents.
+              Are you sure you want to delete "{selectedFolder?.name}"? This
+              action cannot be undone and will permanently delete the folder and
+              all its contents.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowDeleteDialog(false);
                 setSelectedFolder(null);

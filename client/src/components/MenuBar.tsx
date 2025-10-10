@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,8 @@ interface MenuBarProps {
   onProjectPathChange: (path: string) => void;
   onSaveProject?: () => Promise<any>;
   onOpenProjectList?: () => void;
+  onOpenImportPicker?: () => void;
+  onOpenProjectPicker?: () => void;
 }
 
 export default function MenuBar({
@@ -40,8 +42,9 @@ export default function MenuBar({
   onProjectPathChange,
   onSaveProject,
   onOpenProjectList,
+  onOpenImportPicker,
+  onOpenProjectPicker,
 }: MenuBarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
 
@@ -49,20 +52,10 @@ export default function MenuBar({
     setNewProjectDialogOpen(true);
   };
 
-  const handleFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const folderPath = files[0].webkitRelativePath.split('/')[0];
-      onProjectPathChange(folderPath);
-      toast({
-        title: "Project Opened",
-        description: `Selected folder: ${folderPath}`,
-      });
-    }
-  };
-
   const handleOpen = () => {
-    fileInputRef.current?.click();
+    if (onOpenProjectPicker) {
+      onOpenProjectPicker();
+    }
   };
 
   const handleSave = async () => {
@@ -90,8 +83,8 @@ export default function MenuBar({
   };
 
   const handleImport = () => {
-    if (onOpenProjectList) {
-      onOpenProjectList();
+    if (onOpenImportPicker) {
+      onOpenImportPicker();
     }
   };
 
@@ -233,15 +226,6 @@ export default function MenuBar({
           )}
         </Button>
       </div>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        {...({ webkitdirectory: "", directory: "" } as any)}
-        multiple
-        onChange={handleFolderSelect}
-      />
       
       <NewProjectDialog 
         open={newProjectDialogOpen}

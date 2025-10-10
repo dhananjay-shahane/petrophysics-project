@@ -3,6 +3,7 @@ import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSe
 import MenuBar from "./MenuBar";
 import ProjectInfoBar from "./ProjectInfoBar";
 import ProjectListDialog from "./ProjectListDialog";
+import DirectoryPicker from "./DirectoryPicker";
 import WellsPanelNew from "./WellsPanelNew";
 import ZonationPanelNew from "./ZonationPanelNew";
 import DataBrowserPanelNew from "./DataBrowserPanelNew";
@@ -130,6 +131,8 @@ export default function AdvancedDockWorkspace() {
   const [projectCreatedAt, setProjectCreatedAt] = useState<string>("");
   const [draggedPanel, setDraggedPanel] = useState<PanelId | null>(null);
   const [projectListOpen, setProjectListOpen] = useState(false);
+  const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false);
+  const [directoryPickerMode, setDirectoryPickerMode] = useState<"import" | "open">("open");
   const [dropZones, setDropZones] = useState<DropZone[]>([
     { id: "left", zone: "left" },
     { id: "right", zone: "right" },
@@ -261,6 +264,31 @@ export default function AdvancedDockWorkspace() {
     const folderName = folderPath.split('/').pop() || folderPath;
     setProjectName(folderName);
     setProjectCreatedAt(new Date().toISOString());
+  };
+
+  const handleOpenImportPicker = () => {
+    setDirectoryPickerMode("import");
+    setDirectoryPickerOpen(true);
+  };
+
+  const handleOpenProjectPicker = () => {
+    setDirectoryPickerMode("open");
+    setDirectoryPickerOpen(true);
+  };
+
+  const handleDirectorySelect = (path: string) => {
+    if (directoryPickerMode === "import") {
+      toast({
+        title: "Import from Directory",
+        description: `Selected directory: ${path}`,
+      });
+    } else {
+      handleProjectFolderSelect(path);
+      toast({
+        title: "Project Opened",
+        description: `Selected project directory: ${path}`,
+      });
+    }
   };
 
   const handleLoadProject = async (fileName: string) => {
@@ -533,6 +561,8 @@ export default function AdvancedDockWorkspace() {
           onProjectPathChange={handleProjectFolderSelect}
           onSaveProject={saveProjectData}
           onOpenProjectList={() => setProjectListOpen(true)}
+          onOpenImportPicker={handleOpenImportPicker}
+          onOpenProjectPicker={handleOpenProjectPicker}
         />
         
         <ProjectInfoBar 
@@ -656,6 +686,12 @@ export default function AdvancedDockWorkspace() {
               throw error;
             }
           }}
+        />
+
+        <DirectoryPicker
+          open={directoryPickerOpen}
+          onOpenChange={setDirectoryPickerOpen}
+          onSelectPath={handleDirectorySelect}
         />
       </div>
     </DndContext>
