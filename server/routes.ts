@@ -514,6 +514,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/wells/load", async (req, res) => {
+    try {
+      const filePath = req.query.filePath as string;
+      
+      if (!filePath) {
+        return res.status(400).json({ error: "File path is required" });
+      }
+      
+      const wellData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+      res.json(wellData);
+    } catch (error: any) {
+      console.error("Error loading well data:", error);
+      res.status(500).json({ error: "Failed to load well data: " + error.message });
+    }
+  });
+
   app.get("/api/wells/list", async (req, res) => {
     try {
       const projectPath = req.query.projectPath as string;
