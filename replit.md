@@ -80,6 +80,8 @@ See `design_guidelines.md` for detailed UI/UX specifications including:
   - Added "New Folder" creation functionality
   - Implemented secure path validation to prevent directory traversal
   - Set default project path to petrophysics-workplace
+  - Added right-click context menu with Rename and Delete options
+  - Fixed folder name truncation with word wrapping (displays up to 2 lines)
 
 ## Dependencies
 - **Frontend**: React, Vite, Tailwind, Radix UI, Framer Motion, react-rnd, dnd-kit
