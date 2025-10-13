@@ -5,6 +5,10 @@ import fs from "fs/promises";
 import path from "path";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execPromise = promisify(exec);
 
 // Helper function to parse LAS file and extract well information
 function parseLASFile(lasContent: string): any {
