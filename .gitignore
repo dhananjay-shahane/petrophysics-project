@@ -10,3 +10,10 @@ attached_assets
 local
 !replit.md
 !database
+
+.pythonlibs
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
