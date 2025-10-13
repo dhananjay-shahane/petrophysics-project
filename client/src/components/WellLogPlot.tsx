@@ -38,7 +38,7 @@ export default function WellLogPlot({ selectedWell }: WellLogPlotProps) {
       
       try {
         const wellName = selectedWell.well_name || selectedWell.name;
-        const response = await fetch(`/api/wells/${wellName}/log-plot`);
+        const response = await fetch(`/api/wells/${encodeURIComponent(wellName)}/log-plot`);
         
         if (!response.ok) {
           const errorData = await response.json();

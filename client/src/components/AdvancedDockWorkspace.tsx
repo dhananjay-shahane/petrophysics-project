@@ -175,12 +175,14 @@ export default function AdvancedDockWorkspace() {
   // Load wells when project path changes
   useEffect(() => {
     const loadWells = async () => {
-      if (!projectPath || projectPath === "No path selected") {
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/wells/list?projectPath=${encodeURIComponent(projectPath)}`);
+        // Build URL with project path if available, otherwise use default workspace
+        let url = '/api/wells/list';
+        if (projectPath && projectPath !== "No path selected") {
+          url += `?projectPath=${encodeURIComponent(projectPath)}`;
+        }
+        
+        const response = await fetch(url);
         const result = await response.json();
 
         if (response.ok && result.success) {
