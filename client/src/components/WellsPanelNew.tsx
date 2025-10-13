@@ -67,8 +67,7 @@ export default function WellsPanelNew({
           {wells.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <FileText className="w-12 h-12 mb-2 opacity-30" />
-              <p className="text-sm">No wells loaded</p>
-              <p className="text-xs mt-1">Load CSV/LAS files from Feedback panel</p>
+              <p className="text-sm">No wells available</p>
             </div>
           ) : filteredWells.length === 0 ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">

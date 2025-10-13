@@ -172,29 +172,13 @@ export default function AdvancedDockWorkspace() {
     }
   }, [theme]);
 
-  // Load wells when project path changes
-  useEffect(() => {
-    const loadWells = async () => {
-      try {
-        // Build URL with project path if available, otherwise use default workspace
-        let url = '/api/wells/list';
-        if (projectPath && projectPath !== "No path selected") {
-          url += `?projectPath=${encodeURIComponent(projectPath)}`;
-        }
-        
-        const response = await fetch(url);
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-          setWells(result.wells || []);
-        }
-      } catch (error) {
-        console.error('Error loading wells:', error);
-      }
-    };
-
-    loadWells();
-  }, [projectPath]);
+  // Wells loading disabled - API endpoints removed
+  // useEffect(() => {
+  //   const loadWells = async () => {
+  //     // API endpoint /api/wells/list has been removed
+  //   };
+  //   loadWells();
+  // }, [projectPath]);
 
   const togglePanel = (panelId: string) => {
     setPanels((prev) => {
@@ -275,34 +259,8 @@ export default function AdvancedDockWorkspace() {
   };
 
   const saveProjectData = async () => {
-    const projectData: ProjectData = {
-      name: projectName,
-      path: projectPath,
-      wells: wells,
-      createdAt: projectCreatedAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      const response = await fetch('/api/projects/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ projectData }),
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to save project');
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Error saving project:', error);
-      throw error;
-    }
+    // Project save functionality disabled - API endpoint removed
+    console.log('Project save disabled');
   };
 
   const loadProjectData = (projectData: ProjectData) => {
@@ -345,24 +303,8 @@ export default function AdvancedDockWorkspace() {
   };
 
   const handleLoadProject = async (fileName: string) => {
-    try {
-      const response = await fetch(`/api/projects/load/${fileName}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to load project');
-      }
-
-      if (result.success && result.projectData) {
-        loadProjectData(result.projectData);
-        return result;
-      } else {
-        throw new Error(result.error || 'Failed to load project');
-      }
-    } catch (error) {
-      console.error('Error loading project:', error);
-      throw error;
-    }
+    // Project load functionality disabled - API endpoint removed
+    console.log('Project load disabled');
   };
 
   const updatePanelGeometry = (
