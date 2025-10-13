@@ -9,6 +9,44 @@ import os
 
 class PlotGenerator:
     @staticmethod
+    def _convert_legacy_format(well_data: Dict[str, Any], dataset_name: str) -> Dict[str, Any]:
+        """Convert legacy flat data format to new datasets format"""
+        if 'data' in well_data and isinstance(well_data['data'], list) and len(well_data['data']) > 0:
+            # Legacy format detected
+            data_array = well_data['data']
+            first_row = data_array[0]
+            
+            # Extract all column names (log names)
+            log_names = list(first_row.keys())
+            
+            # Assume DEPT or first column is the index
+            index_name = 'DEPT' if 'DEPT' in log_names else log_names[0]
+            
+            # Build index_log
+            index_log = [row.get(index_name) for row in data_array]
+            
+            # Build well_logs
+            well_logs = []
+            for log_name in log_names:
+                if log_name != index_name:
+                    log_data = [row.get(log_name) for row in data_array]
+                    well_logs.append({
+                        'name': log_name,
+                        'log': log_data,
+                        'unit': ''
+                    })
+            
+            # Create a dataset structure
+            return {
+                'name': dataset_name,
+                'type': 'Cont',
+                'index_log': index_log,
+                'index_name': index_name,
+                'well_logs': well_logs
+            }
+        return None
+    
+    @staticmethod
     def generate_well_log_plot(well_data: Dict[str, Any], dataset_name: str, log_names: List[str], output_path: Optional[str] = None) -> str:
         """Generate a well log plot and return the path or base64 encoded image"""
         
@@ -18,6 +56,10 @@ class PlotGenerator:
             if ds.get('name') == dataset_name:
                 dataset = ds
                 break
+        
+        # If no dataset found, try legacy format conversion
+        if not dataset:
+            dataset = PlotGenerator._convert_legacy_format(well_data, dataset_name)
         
         if not dataset:
             raise ValueError(f"Dataset {dataset_name} not found")
@@ -86,6 +128,10 @@ class PlotGenerator:
             if ds.get('name') == dataset_name:
                 dataset = ds
                 break
+        
+        # If no dataset found, try legacy format conversion
+        if not dataset:
+            dataset = PlotGenerator._convert_legacy_format(well_data, dataset_name)
         
         if not dataset:
             raise ValueError(f"Dataset {dataset_name} not found")

@@ -18,8 +18,20 @@ def generate_well_log_plot():
         if not well_name or not dataset_name or not log_names:
             return jsonify({"error": "wellName, datasetName, and logNames are required"}), 400
         
+        # Security: Validate project path is within workspace
+        workspace_root = os.path.join(os.getcwd(), "petrophysics-workplace")
+        resolved_workspace = os.path.realpath(workspace_root)
+        resolved_project_path = os.path.realpath(project_path)
+        
+        try:
+            common = os.path.commonpath([resolved_workspace, resolved_project_path])
+            if common != resolved_workspace:
+                return jsonify({"error": "Access denied: project path outside workspace"}), 403
+        except ValueError:
+            return jsonify({"error": "Access denied: invalid project path"}), 403
+        
         # Load well data
-        well_manager = WellManager(project_path)
+        well_manager = WellManager(resolved_project_path)
         well = well_manager.get_well_by_name(well_name)
         
         if not well:
@@ -64,8 +76,20 @@ def generate_cross_plot():
         if not well_name or not dataset_name or not x_log or not y_log:
             return jsonify({"error": "wellName, datasetName, xLog, and yLog are required"}), 400
         
+        # Security: Validate project path is within workspace
+        workspace_root = os.path.join(os.getcwd(), "petrophysics-workplace")
+        resolved_workspace = os.path.realpath(workspace_root)
+        resolved_project_path = os.path.realpath(project_path)
+        
+        try:
+            common = os.path.commonpath([resolved_workspace, resolved_project_path])
+            if common != resolved_workspace:
+                return jsonify({"error": "Access denied: project path outside workspace"}), 403
+        except ValueError:
+            return jsonify({"error": "Access denied: invalid project path"}), 403
+        
         # Load well data
-        well_manager = WellManager(project_path)
+        well_manager = WellManager(resolved_project_path)
         well = well_manager.get_well_by_name(well_name)
         
         if not well:
@@ -109,19 +133,37 @@ def get_log_data():
         if not well_name or not dataset_name:
             return jsonify({"error": "wellName and datasetName are required"}), 400
         
+        # Security: Validate project path is within workspace
+        workspace_root = os.path.join(os.getcwd(), "petrophysics-workplace")
+        resolved_workspace = os.path.realpath(workspace_root)
+        resolved_project_path = os.path.realpath(project_path)
+        
+        try:
+            common = os.path.commonpath([resolved_workspace, resolved_project_path])
+            if common != resolved_workspace:
+                return jsonify({"error": "Access denied: project path outside workspace"}), 403
+        except ValueError:
+            return jsonify({"error": "Access denied: invalid project path"}), 403
+        
         # Load well data
-        well_manager = WellManager(project_path)
+        well_manager = WellManager(resolved_project_path)
         well = well_manager.get_well_by_name(well_name)
         
         if not well:
             return jsonify({"error": "Well not found"}), 404
         
         # Find dataset
+        well_dict = well.to_dict()
         dataset = None
-        for ds in well.datasets:
+        for ds in well_dict.get('datasets', []):
             if ds.get('name') == dataset_name:
                 dataset = ds
                 break
+        
+        # If no dataset found, try legacy format conversion
+        if not dataset:
+            from ..utils.plot_generator import PlotGenerator
+            dataset = PlotGenerator._convert_legacy_format(well_dict, dataset_name)
         
         if not dataset:
             return jsonify({"error": "Dataset not found"}), 404
