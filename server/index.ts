@@ -1,10 +1,51 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { spawn } from "child_process";
+import axios from "axios";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Flask server configuration
+const FLASK_PORT = 5001;
+const FLASK_URL = `http://localhost:${FLASK_PORT}`;
+let flaskProcess: any = null;
+
+// Start Flask server
+function startFlaskServer() {
+  log("Starting Flask server...");
+  flaskProcess = spawn("uv", ["run", "python", "server/run_flask.py"], {
+    env: { ...process.env, FLASK_PORT: FLASK_PORT.toString() },
+    stdio: "inherit"
+  });
+
+  flaskProcess.on("error", (error: Error) => {
+    console.error("Failed to start Flask server:", error);
+  });
+
+  flaskProcess.on("exit", (code: number) => {
+    if (code !== 0) {
+      console.error(`Flask server exited with code ${code}`);
+    }
+  });
+}
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  if (flaskProcess) {
+    flaskProcess.kill();
+  }
+  process.exit();
+});
+
+process.on("SIGTERM", () => {
+  if (flaskProcess) {
+    flaskProcess.kill();
+  }
+  process.exit();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,8 +78,43 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Start Flask server
+  startFlaskServer();
+  
+  // Wait for Flask to be ready
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
   // Serve static files from public directory FIRST (for well plots, etc.)
   app.use(express.static("public"));
+
+  // Proxy specific routes to Flask
+  const flaskRoutes = [
+    '/api/projects',
+    '/api/wells/upload-las',
+    '/api/wells/',
+    '/api/visualization'
+  ];
+
+  app.use(flaskRoutes, async (req, res) => {
+    try {
+      const flaskUrl = `${FLASK_URL}${req.path}`;
+      const response = await axios({
+        method: req.method,
+        url: flaskUrl,
+        data: req.body,
+        params: req.query,
+        headers: {
+          'Content-Type': req.headers['content-type'] || 'application/json',
+        },
+        validateStatus: () => true
+      });
+
+      res.status(response.status).json(response.data);
+    } catch (error: any) {
+      console.error('Flask proxy error:', error.message);
+      res.status(500).json({ error: 'Flask server error: ' + error.message });
+    }
+  });
 
   const server = await registerRoutes(app);
 
@@ -69,5 +145,6 @@ app.use((req, res, next) => {
     host: '0.0.0.0',
   }, () => {
     log(`serving on port ${port}`);
+    log(`Flask server proxied from ${FLASK_URL}`);
   });
 })();
