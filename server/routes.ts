@@ -1030,6 +1030,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/data/list", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      
+      await fs.mkdir(workspaceRoot, { recursive: true });
+      
+      const dirPath = req.query.path as string || workspaceRoot;
+      
+      const resolvedPath = path.resolve(dirPath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath + path.sep);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+      
+      try {
+        const stats = await fs.stat(resolvedPath);
+        if (!stats.isDirectory()) {
+          return res.status(400).json({ error: "Path is not a directory" });
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          await fs.mkdir(workspaceRoot, { recursive: true });
+          return res.json({
+            currentPath: workspaceRoot,
+            parentPath: workspaceRoot,
+            items: [],
+            canGoUp: false,
+          });
+        }
+        throw error;
+      }
+
+      const items = await fs.readdir(resolvedPath, { withFileTypes: true });
+      
+      const fileItems = items
+        .filter(item => !item.name.startsWith('.'))
+        .map(item => ({
+          name: item.name,
+          path: path.join(resolvedPath, item.name),
+          type: item.isDirectory() ? 'directory' as const : 'file' as const,
+        }))
+        .sort((a, b) => {
+          if (a.type === b.type) return a.name.localeCompare(b.name);
+          return a.type === 'directory' ? -1 : 1;
+        });
+
+      const canGoUp = resolvedPath !== workspaceRoot;
+
+      res.json({
+        currentPath: resolvedPath,
+        parentPath: canGoUp ? path.dirname(resolvedPath) : resolvedPath,
+        items: fileItems,
+        canGoUp,
+      });
+    } catch (error) {
+      console.error("Error listing data:", error);
+      res.status(500).json({ error: "Failed to list data" });
+    }
+  });
+
+  app.get("/api/data/file", async (req, res) => {
+    try {
+      const workspaceRoot = path.join(process.cwd(), "petrophysics-workplace");
+      const filePath = req.query.path as string;
+      
+      if (!filePath) {
+        return res.status(400).json({ error: "File path is required" });
+      }
+
+      const resolvedPath = path.resolve(filePath);
+      const normalizedRoot = path.normalize(workspaceRoot + path.sep);
+      const normalizedPath = path.normalize(resolvedPath);
+      
+      if (!normalizedPath.startsWith(normalizedRoot)) {
+        return res.status(403).json({ error: "Access denied: path outside petrophysics-workplace" });
+      }
+
+      const stats = await fs.stat(resolvedPath);
+      if (!stats.isFile()) {
+        return res.status(400).json({ error: "Path is not a file" });
+      }
+
+      const content = await fs.readFile(resolvedPath, 'utf-8');
+      
+      try {
+        const jsonContent = JSON.parse(content);
+        res.json({ content: jsonContent });
+      } catch {
+        res.json({ content: content });
+      }
+    } catch (error: any) {
+      console.error("Error reading file:", error);
+      res.status(500).json({ error: "Failed to read file: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
