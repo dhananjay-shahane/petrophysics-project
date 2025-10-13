@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -25,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, File, ArrowUp, FolderPlus, Pencil, Trash2, X } from "lucide-react";
+import { Folder, File, ArrowUp, FolderPlus, Pencil, Trash2, List, Grid3x3, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DataExplorerProps {
@@ -46,6 +45,8 @@ interface DataResponse {
   canGoUp?: boolean;
 }
 
+type ViewMode = "grid" | "list";
+
 export default function DataExplorer({
   open,
   onOpenChange,
@@ -65,8 +66,7 @@ export default function DataExplorer({
   const [renameItemName, setRenameItemName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
-  const [fileContent, setFileContent] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const { toast } = useToast();
 
   const loadData = async (path: string) => {
@@ -101,42 +101,18 @@ export default function DataExplorer({
   useEffect(() => {
     if (open) {
       loadData(workspaceRoot);
-      setSelectedFile(null);
-      setFileContent("");
     }
   }, [open]);
 
   const handleSelectItem = async (item: FileItem) => {
     if (item.type === "directory") {
       loadData(item.path);
-      setSelectedFile(null);
-      setFileContent("");
-    } else {
-      setSelectedFile(item);
-      try {
-        const response = await fetch(
-          `/api/data/file?path=${encodeURIComponent(item.path)}`,
-        );
-        if (!response.ok) {
-          throw new Error("Failed to read file");
-        }
-        const data = await response.json();
-        setFileContent(JSON.stringify(data.content, null, 2));
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to read file content",
-          variant: "destructive",
-        });
-      }
     }
   };
 
   const handleGoUp = () => {
     if (canGoUp && parentPath) {
       loadData(parentPath);
-      setSelectedFile(null);
-      setFileContent("");
     }
   };
 
@@ -281,113 +257,149 @@ export default function DataExplorer({
     setShowDeleteDialog(true);
   };
 
+  const getDisplayPath = () => {
+    return currentPath.replace('/home/runner/workspace/', '');
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl h-[600px] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Data Explorer</DialogTitle>
-            <DialogDescription>
-              Browse and manage folders and files in your workspace
-            </DialogDescription>
+        <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="sr-only">Data Explorer</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 flex gap-4 min-h-0">
-            <div className="flex-1 flex flex-col min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGoUp}
-                  disabled={!canGoUp || isLoading}
-                >
-                  <ArrowUp className="w-4 h-4 mr-2" />
-                  Up
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCreateDialog(true)}
-                  disabled={isLoading}
-                >
-                  <FolderPlus className="w-4 h-4 mr-2" />
-                  New Folder
-                </Button>
-              </div>
-
-              <div className="text-xs text-muted-foreground mb-2 truncate">
-                {currentPath}
-              </div>
-
-              <ScrollArea className="flex-1 border rounded-md">
-                <div className="p-2">
-                  {isLoading ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Loading...
-                    </div>
-                  ) : items.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No items found
-                    </div>
-                  ) : (
-                    items.map((item) => (
-                      <ContextMenu key={item.path}>
-                        <ContextMenuTrigger>
-                          <div
-                            className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
-                            onClick={() => handleSelectItem(item)}
-                          >
-                            {item.type === "directory" ? (
-                              <Folder className="w-4 h-4 text-blue-500" />
-                            ) : (
-                              <File className="w-4 h-4 text-gray-500" />
-                            )}
-                            <span className="text-sm">{item.name}</span>
-                          </div>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                          <ContextMenuItem onClick={() => openRenameDialog(item)}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Rename
-                          </ContextMenuItem>
-                          <ContextMenuItem 
-                            onClick={() => openDeleteDialog(item)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleGoUp}
+                disabled={!canGoUp || isLoading}
+                className="h-8 w-8"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground">
+                {getDisplayPath()}
+              </span>
             </div>
 
-            {selectedFile && (
-              <div className="flex-1 flex flex-col min-w-0 border-l pl-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium truncate">{selectedFile.name}</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setFileContent("");
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                <ScrollArea className="flex-1 border rounded-md">
-                  <pre className="p-4 text-xs">
-                    {fileContent || "No content available"}
-                  </pre>
-                </ScrollArea>
+            <div className="flex items-center gap-2">
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="h-8 rounded-r-none"
+                >
+                  <Grid3x3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="h-8 rounded-l-none"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateDialog(true)}
+                disabled={isLoading}
+                className="h-8"
+              >
+                <FolderPlus className="w-4 h-4 mr-2" />
+                New Folder
+              </Button>
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 px-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                Loading...
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                No items found
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-6 gap-4 py-6">
+                {items.map((item) => (
+                  <ContextMenu key={item.path}>
+                    <ContextMenuTrigger>
+                      <div
+                        className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                        onDoubleClick={() => handleSelectItem(item)}
+                      >
+                        {item.type === "directory" ? (
+                          <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                            <Folder className="w-10 h-10 text-blue-500" />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <FileText className="w-8 h-8 text-gray-500" />
+                          </div>
+                        )}
+                        <span className="text-sm text-center truncate w-full">
+                          {item.name}
+                        </span>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => openRenameDialog(item)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuItem 
+                        onClick={() => openDeleteDialog(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
+              </div>
+            ) : (
+              <div className="py-4 space-y-1">
+                {items.map((item) => (
+                  <ContextMenu key={item.path}>
+                    <ContextMenuTrigger>
+                      <div
+                        className="flex items-center gap-3 p-2 rounded hover:bg-accent cursor-pointer"
+                        onDoubleClick={() => handleSelectItem(item)}
+                      >
+                        {item.type === "directory" ? (
+                          <Folder className="w-5 h-5 text-blue-500" />
+                        ) : (
+                          <File className="w-5 h-5 text-gray-500" />
+                        )}
+                        <span className="text-sm">{item.name}</span>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => openRenameDialog(item)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuItem 
+                        onClick={() => openDeleteDialog(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
               </div>
             )}
-          </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
