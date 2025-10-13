@@ -16,11 +16,29 @@ ALLOWED_EXTENSIONS = {'las', 'LAS'}
 # Ensure workspace exists
 Path(WORKSPACE_ROOT).mkdir(parents=True, exist_ok=True)
 
+# Get workspace info
+@api.route('/workspace/info', methods=['GET'])
+def get_workspace_info():
+    return jsonify({
+        'workspaceRoot': WORKSPACE_ROOT,
+        'absolutePath': os.path.abspath(WORKSPACE_ROOT),
+        'exists': os.path.exists(WORKSPACE_ROOT)
+    })
+
 # Helper function to validate paths (prevents symlink traversal)
 def validate_path(path_str):
-    resolved = os.path.realpath(path_str)
-    workspace = os.path.realpath(WORKSPACE_ROOT)
-    return resolved.startswith(workspace)
+    try:
+        # Normalize paths for cross-platform compatibility
+        resolved = os.path.normpath(os.path.realpath(path_str))
+        workspace = os.path.normpath(os.path.realpath(WORKSPACE_ROOT))
+        # On Windows, also ensure paths are on the same drive
+        if os.name == 'nt':
+            # If paths are on different drives, path is invalid
+            if os.path.splitdrive(resolved)[0].lower() != os.path.splitdrive(workspace)[0].lower():
+                return False
+        return resolved.startswith(workspace)
+    except:
+        return False
 
 # Project Management Routes
 @api.route('/projects/create', methods=['POST'])
@@ -59,10 +77,16 @@ def create_project():
 def list_directories():
     try:
         dir_path = request.args.get('path', WORKSPACE_ROOT)
+        
+        # If the path doesn't exist or is not valid, use workspace root
+        if not dir_path or not os.path.exists(dir_path):
+            dir_path = WORKSPACE_ROOT
+        
         resolved_path = os.path.abspath(dir_path)
         
         if not validate_path(resolved_path):
-            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+            # If validation fails, return workspace root instead of error
+            resolved_path = os.path.abspath(WORKSPACE_ROOT)
         
         if not os.path.exists(resolved_path):
             Path(WORKSPACE_ROOT).mkdir(parents=True, exist_ok=True)
@@ -216,9 +240,14 @@ def list_data():
         if not dir_path:
             return jsonify({'error': 'Path is required'}), 400
         
+        # If path doesn't exist, use workspace root
+        if not os.path.exists(dir_path):
+            dir_path = WORKSPACE_ROOT
+        
         resolved_path = os.path.abspath(dir_path)
         if not validate_path(resolved_path):
-            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+            # Use workspace root as fallback
+            resolved_path = os.path.abspath(WORKSPACE_ROOT)
         
         if not os.path.isdir(resolved_path):
             return jsonify({'error': 'Path is not a directory'}), 400
@@ -304,43 +333,67 @@ def preview_las():
 @api.route('/wells/create-from-las', methods=['POST'])
 def create_from_las():
     """Upload LAS file and create well in project"""
+    logs = []
     try:
+        logs.append({'message': 'Starting LAS file upload...', 'type': 'info'})
+        
         if 'lasFile' not in request.files:
-            return jsonify({'error': 'No LAS file provided'}), 400
+            return jsonify({'error': 'No LAS file provided', 'logs': logs}), 400
         
         las_file = request.files['lasFile']
         project_path = request.form.get('projectPath')
         
         if not project_path:
-            return jsonify({'error': 'Project path is required'}), 400
+            return jsonify({'error': 'Project path is required', 'logs': logs}), 400
         
         if las_file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
+            return jsonify({'error': 'No file selected', 'logs': logs}), 400
+        
+        logs.append({'message': f'File selected: {las_file.filename}', 'type': 'info'})
         
         if not allowed_file(las_file.filename):
-            return jsonify({'error': 'Invalid file type. Only .las files are allowed'}), 400
+            logs.append({'message': 'ERROR: Invalid file type. Only .las files are allowed', 'type': 'error'})
+            return jsonify({'error': 'Invalid file type. Only .las files are allowed', 'logs': logs}), 400
         
         resolved_project_path = os.path.abspath(project_path)
         if not validate_path(resolved_project_path):
-            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+            logs.append({'message': 'ERROR: Access denied - path outside workspace', 'type': 'error'})
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace', 'logs': logs}), 403
         
         if not os.path.exists(resolved_project_path):
-            return jsonify({'error': 'Project path does not exist'}), 404
+            logs.append({'message': 'ERROR: Project path does not exist', 'type': 'error'})
+            return jsonify({'error': 'Project path does not exist', 'logs': logs}), 404
         
         filename = secure_filename(las_file.filename)
+        logs.append({'message': f'Saving file as: {filename}', 'type': 'info'})
         
         with tempfile.NamedTemporaryFile(mode='wb', suffix='.las', delete=False) as tmp_file:
             las_file.save(tmp_file.name)
             tmp_las_path = tmp_file.name
         
         try:
+            logs.append({'message': 'Parsing LAS file...', 'type': 'info'})
             well = LASProcessor.las_to_well(tmp_las_path)
+            logs.append({'message': 'LAS file parsed successfully', 'type': 'success'})
+            logs.append({'message': f'Well Name: {well.well_name}', 'type': 'info'})
+            logs.append({'message': f'Well Type: {well.well_type}', 'type': 'info'})
             
+            # Count curves - use well_logs attribute from fe_data_objects.Dataset
+            total_curves = sum(len(ds.well_logs) if hasattr(ds, 'well_logs') else 0 for ds in well.datasets)
+            logs.append({'message': f'Found {total_curves} log curves', 'type': 'info'})
+            
+            logs.append({'message': 'Saving well to project...', 'type': 'info'})
             result = LASProcessor.save_well_to_project(
                 well=well,
                 project_path=resolved_project_path,
                 las_source_file=tmp_las_path
             )
+            
+            logs.append({'message': f'SUCCESS: Well saved to: {result["well_path"]}', 'type': 'success'})
+            if result.get('las_path'):
+                logs.append({'message': f'SUCCESS: LAS file copied to: {result["las_path"]}', 'type': 'success'})
+            
+            logs.append({'message': f'Well "{well.well_name}" created successfully!', 'type': 'success'})
             
             return jsonify({
                 'success': True,
@@ -351,7 +404,8 @@ def create_from_las():
                     'type': well.well_type
                 },
                 'filePath': result['well_path'],
-                'lasFilePath': result.get('las_path')
+                'lasFilePath': result.get('las_path'),
+                'logs': logs
             }), 201
             
         finally:
@@ -360,7 +414,8 @@ def create_from_las():
                 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        logs.append({'message': f'ERROR: {str(e)}', 'type': 'error'})
+        return jsonify({'error': str(e), 'logs': logs}), 500
 
 @api.route('/wells/list', methods=['GET'])
 def list_wells():

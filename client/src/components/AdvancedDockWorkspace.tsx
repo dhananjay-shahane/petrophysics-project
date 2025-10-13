@@ -502,7 +502,7 @@ export default function AdvancedDockWorkspace() {
     const panelSpecificProps = panelId === 'wells' 
       ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
-      ? { onLoadWells: handleLoadWells }
+      ? { onLoadWells: handleLoadWells, projectPath }
       : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'
       ? { selectedWell, projectPath }
       : {};

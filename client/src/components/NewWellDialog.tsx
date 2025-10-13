@@ -133,12 +133,20 @@ export default function NewWellDialog({
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create well from LAS file");
+      const result = await response.json();
+
+      // Display logs in Python Logs panel
+      if (result.logs && Array.isArray(result.logs)) {
+        result.logs.forEach((log: any) => {
+          if ((window as any).addPythonLog) {
+            (window as any).addPythonLog(log.message, log.type);
+          }
+        });
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create well from LAS file");
+      }
 
       toast({
         title: "Success",
@@ -154,9 +162,16 @@ export default function NewWellDialog({
       }
 
       setLasFile(null);
+      setLasPreview(null);
       onOpenChange(false);
     } catch (error: any) {
       const errorMessage = error.message || "Failed to create well from LAS file. Please try again.";
+      
+      // Log error to Python Logs panel
+      if ((window as any).addPythonLog) {
+        (window as any).addPythonLog(`❌ Upload failed: ${errorMessage}`, 'error');
+      }
+      
       toast({
         title: "Error",
         description: errorMessage,

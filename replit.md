@@ -6,7 +6,38 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
-### October 13, 2025 - Replit Environment Setup
+### October 13, 2025 - LAS Upload UI & Logging in Python Logs Panel
+- **LAS Upload UI in Python Logs Panel**: Direct LAS file upload from bottom panel
+  - "Choose LAS File" button to select files
+  - "Upload" button to process and import LAS files
+  - File name display showing selected file
+  - Upload progress indication (button shows "Uploading..." during process)
+  - Integrated with project path - automatically uses current project
+- **Real-time Upload Logging**: LAS file uploads display detailed logs in Python Logs panel
+  - Step-by-step progress messages (no emojis for better compatibility)
+  - Color-coded log types: info (blue), success (green), error (red), warning (yellow)
+  - Shows: file selection, parsing status, well name, well type, curve count, save paths
+  - Error messages displayed clearly with reasons
+- **Backend Logging** (flask/routes.py):
+  - `/api/wells/create-from-las` endpoint returns structured log array
+  - Each log has `message` and `type` (info/success/error/warning)
+  - Logs track: file selection, parsing, well details, saving, completion
+  - Fixed AttributeError: Uses `ds.well_logs` attribute from fe_data_objects.Dataset
+- **Frontend Display** (FeedbackPanelNew.tsx):
+  - Upload UI integrated at top of panel
+  - Captures logs from API response
+  - Displays logs using `window.addPythonLog()` function
+  - **Auto-scroll**: Automatically scrolls to show latest messages
+  - Smooth scrolling with setTimeout to ensure DOM updates complete
+  - Full height log area with native overflow-y-auto
+- **User Experience**:
+  - Upload LAS files without leaving the Python Logs panel
+  - Real-time feedback during upload
+  - Clear error messages for debugging
+  - Progress tracking from start to completion
+  - Auto-scroll keeps latest logs visible
+
+### October 13, 2025 - Replit Environment Setup & Windows Compatibility
 - **Development Environment Configuration**:
   - Frontend (Vite + React) runs on port 5000 with 0.0.0.0 host (user-facing)
   - Backend (Flask API) runs on port 5001 with localhost (internal)
@@ -21,6 +52,12 @@ A professional petrophysics data analysis application featuring a dockable windo
   - Single workflow "Server" runs `bash dev.sh`
   - Starts Flask backend first, then Vite frontend
   - Development mode enables hot reloading for both servers
+- **Cross-Platform Path Handling (Windows/Mac/Linux)**:
+  - Fixed path validation to support both Windows (C:\) and Unix (/) paths
+  - Added path normalization using `os.path.normpath` for compatibility
+  - Windows drive letter validation to ensure paths are on same drive
+  - Graceful fallback to workspace root for invalid or non-existent paths
+  - New `/api/workspace/info` endpoint returns correct workspace path
 - **Project Structure**:
   - `dev.sh`: Development startup (Vite on 5000, Flask on 5001)
   - `production.sh`: Production startup (Flask serves all on 5000)
