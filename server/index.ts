@@ -87,31 +87,48 @@ app.use((req, res, next) => {
   // Serve static files from public directory FIRST (for well plots, etc.)
   app.use(express.static("public"));
 
-  // Proxy API routes to Flask - must be before registerRoutes
-  app.use('/api/*', async (req, res, next) => {
-    // Routes to proxy to Flask
-    const flaskPaths = [
-      '/api/projects',
-      '/api/wells/upload-las',
-      '/api/wells/',
-      '/api/visualization'
-    ];
-    
-    // Check if this route should go to Flask
-    const shouldProxy = flaskPaths.some(path => req.path.startsWith(path)) || 
-                        req.path.match(/\/api\/wells\/[^/]+\/(log-plot|cross-plot)/);
-    
-    if (!shouldProxy) {
-      return next(); // Let Express handle it
+  // Proxy ALL /api/wells/* routes to Flask (except /api/wells/load and /api/wells/create)
+  app.use('/api/wells/*', async (req, res, next) => {
+    // Skip these routes - they're handled by Express
+    const expressRoutes = ['/api/wells/load', '/api/wells/create'];
+    if (expressRoutes.some(route => req.path === route)) {
+      return next();
     }
     
     try {
-      const flaskUrl = `${FLASK_URL}${req.path}`;
+      // Construct full URL with query params
+      const fullPath = req.originalUrl.replace(/^\/api/, ''); // Remove /api prefix to avoid double /api
+      const flaskUrl = `${FLASK_URL}/api${fullPath}`;
+      
       const response = await axios({
         method: req.method,
         url: flaskUrl,
         data: req.body,
-        params: req.query,
+        headers: {
+          'Content-Type': req.headers['content-type'] || 'application/json',
+        },
+        validateStatus: () => true
+      });
+
+      res.status(response.status).json(response.data);
+    } catch (error: any) {
+      console.error('Flask proxy error:', error.message);
+      res.status(500).json({ error: 'Flask server error: ' + error.message });
+    }
+  });
+  
+  // Proxy other Flask routes
+  app.use(['/api/projects/*', '/api/visualization/*'], async (req, res, next) => {
+    try {
+      const flaskUrl = `${FLASK_URL}${req.path}`;
+      const queryString = Object.keys(req.query).length > 0 
+        ? '?' + new URLSearchParams(req.query as any).toString()
+        : '';
+      
+      const response = await axios({
+        method: req.method,
+        url: flaskUrl + queryString,
+        data: req.body,
         headers: {
           'Content-Type': req.headers['content-type'] || 'application/json',
         },

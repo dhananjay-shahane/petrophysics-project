@@ -11,8 +11,9 @@ def list_wells():
     try:
         project_path = request.args.get('projectPath')
         
-        if not project_path or not project_path.strip():
-            return jsonify({"error": "Project path is required"}), 400
+        # Use default workspace if no project path provided
+        if not project_path or not project_path.strip() or project_path == "No path selected":
+            project_path = os.path.join(os.getcwd(), "petrophysics-workplace")
         
         # Security: Validate project path is within workspace
         workspace_root = os.path.join(os.getcwd(), "petrophysics-workplace")
@@ -35,10 +36,23 @@ def list_wells():
                 file_path = os.path.join(wells_dir, file)
                 with open(file_path, 'r') as f:
                     well_data = json.load(f)
+                
+                # Extract logs from the continuous dataset
+                logs = []
+                datasets = well_data.get('datasets', [])
+                for ds in datasets:
+                    if ds.get('type') in ['Cont', 'LOG_DATA', 'Continuous']:
+                        well_logs = ds.get('well_logs', [])
+                        logs = [log.get('name') for log in well_logs]
+                        break
+                
                 wells.append({
                     "id": well_data.get('id', file.replace('.json', '')),
                     "name": well_data.get('well_name', file.replace('.json', '')),
+                    "well_name": well_data.get('well_name', file.replace('.json', '')),
                     "path": file_path,
+                    "logs": logs,
+                    "metadata": well_data.get('metadata', {}),
                     "data": well_data
                 })
             except Exception as e:
