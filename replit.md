@@ -4,6 +4,19 @@
 
 A professional petrophysics data analysis application featuring a dockable window management system inspired by modern IDEs. The application provides an interactive workspace for managing well logs, visualizing data through various plot types, and organizing geological zonation information. Built with React, TypeScript, and Express, it offers a sophisticated drag-and-drop interface for flexible panel arrangement with floating windows, docked layouts, and persistent workspace configurations.
 
+## Recent Changes
+
+### October 2025 - Replit Environment Setup & Enhancements
+- **Environment Setup**: Successfully configured for Replit environment with Node.js and Python dependencies
+- **File Preview Feature**: Enhanced Data Explorer with file preview functionality
+  - Users can now double-click on files to view their contents in a preview dialog
+  - Supports JSON formatting and text file display
+  - Includes loading states and error handling
+- **Deployment Configuration**: Set up VM deployment with production build pipeline
+  - Build process: Vite frontend build + esbuild backend bundle
+  - Production server serves both frontend and API from single process
+  - Configured for always-running VM to maintain session state
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

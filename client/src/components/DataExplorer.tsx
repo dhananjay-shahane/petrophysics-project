@@ -376,7 +376,7 @@ export default function DataExplorer({
                     <ContextMenuTrigger>
                       <div
                         className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                        onDoubleClick={() => handleSelectItem(item)}
+                        onClick={() => handleSelectItem(item)}
                       >
                         {item.type === "directory" ? (
                           <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
@@ -415,7 +415,7 @@ export default function DataExplorer({
                     <ContextMenuTrigger>
                       <div
                         className="flex items-center gap-3 p-2 rounded hover:bg-accent cursor-pointer"
-                        onDoubleClick={() => handleSelectItem(item)}
+                        onClick={() => handleSelectItem(item)}
                       >
                         {item.type === "directory" ? (
                           <Folder className="w-5 h-5 text-blue-500" />
