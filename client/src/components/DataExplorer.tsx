@@ -67,6 +67,10 @@ export default function DataExplorer({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [showFilePreview, setShowFilePreview] = useState(false);
+  const [fileContent, setFileContent] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
   const { toast } = useToast();
 
   const loadData = async (path: string) => {
@@ -107,6 +111,45 @@ export default function DataExplorer({
   const handleSelectItem = async (item: FileItem) => {
     if (item.type === "directory") {
       loadData(item.path);
+    } else {
+      // Load file content
+      await loadFileContent(item);
+    }
+  };
+
+  const loadFileContent = async (file: FileItem) => {
+    setIsLoadingFile(true);
+    setSelectedFile(file);
+    setShowFilePreview(true);
+    
+    try {
+      const response = await fetch(
+        `/api/data/file?path=${encodeURIComponent(file.path)}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to load file");
+      }
+
+      const data = await response.json();
+      
+      // Format content for display
+      if (typeof data.content === 'object') {
+        setFileContent(JSON.stringify(data.content, null, 2));
+      } else {
+        setFileContent(data.content);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to load file",
+        variant: "destructive",
+      });
+      setShowFilePreview(false);
+    } finally {
+      setIsLoadingFile(false);
     }
   };
 
@@ -477,6 +520,35 @@ export default function DataExplorer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showFilePreview} onOpenChange={setShowFilePreview}>
+        <DialogContent className="max-w-4xl h-[600px] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {selectedFile?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 px-6 py-4">
+            {isLoadingFile ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Loading file...
+              </div>
+            ) : (
+              <pre className="text-sm bg-muted p-4 rounded-lg overflow-x-auto">
+                <code>{fileContent}</code>
+              </pre>
+            )}
+          </ScrollArea>
+
+          <div className="px-6 py-4 border-t flex justify-end">
+            <Button onClick={() => setShowFilePreview(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
