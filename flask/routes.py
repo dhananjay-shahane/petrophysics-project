@@ -1,12 +1,16 @@
 import os
 import json
+import tempfile
 from pathlib import Path
 from flask import Blueprint, request, jsonify
+from werkzeug.utils import secure_filename
 from utils.project_utils import create_project_structure
+from utils.las_processor import LASProcessor
 
 api = Blueprint('api', __name__)
 
 WORKSPACE_ROOT = os.path.join(os.getcwd(), "petrophysics-workplace")
+ALLOWED_EXTENSIONS = {'las', 'LAS'}
 
 # Ensure workspace exists
 Path(WORKSPACE_ROOT).mkdir(parents=True, exist_ok=True)
@@ -275,3 +279,126 @@ def read_file():
             return jsonify({'content': content})
     except Exception as e:
         return jsonify({'error': f'Failed to read file: {str(e)}'}), 500
+
+# Well Management Routes
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@api.route('/wells/preview-las', methods=['POST'])
+def preview_las():
+    """Preview LAS file content without saving"""
+    try:
+        data = request.get_json()
+        las_content = data.get('lasContent')
+        
+        if not las_content:
+            return jsonify({'error': 'LAS content is required'}), 400
+        
+        preview_info = LASProcessor.preview_las(las_content)
+        return jsonify(preview_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/wells/create-from-las', methods=['POST'])
+def create_from_las():
+    """Upload LAS file and create well in project"""
+    try:
+        if 'lasFile' not in request.files:
+            return jsonify({'error': 'No LAS file provided'}), 400
+        
+        las_file = request.files['lasFile']
+        project_path = request.form.get('projectPath')
+        
+        if not project_path:
+            return jsonify({'error': 'Project path is required'}), 400
+        
+        if las_file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(las_file.filename):
+            return jsonify({'error': 'Invalid file type. Only .las files are allowed'}), 400
+        
+        resolved_project_path = os.path.abspath(project_path)
+        if not validate_path(resolved_project_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        if not os.path.exists(resolved_project_path):
+            return jsonify({'error': 'Project path does not exist'}), 404
+        
+        filename = secure_filename(las_file.filename)
+        
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.las', delete=False) as tmp_file:
+            las_file.save(tmp_file.name)
+            tmp_las_path = tmp_file.name
+        
+        try:
+            well = LASProcessor.las_to_well(tmp_las_path)
+            
+            result = LASProcessor.save_well_to_project(
+                well=well,
+                project_path=resolved_project_path,
+                las_source_file=tmp_las_path
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': f'Well "{well.name}" created successfully',
+                'well': {
+                    'id': well.name,
+                    'name': well.name,
+                    'uwi': well.uwi
+                },
+                'filePath': result['well_path'],
+                'lasFilePath': result.get('las_path')
+            }), 201
+            
+        finally:
+            if os.path.exists(tmp_las_path):
+                os.unlink(tmp_las_path)
+                
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/wells/list', methods=['GET'])
+def list_wells():
+    """List all wells in a project"""
+    try:
+        project_path = request.args.get('projectPath')
+        
+        if not project_path:
+            return jsonify({'error': 'Project path is required'}), 400
+        
+        resolved_path = os.path.abspath(project_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        wells_folder = os.path.join(resolved_path, "10-WELLS")
+        
+        if not os.path.exists(wells_folder):
+            return jsonify({'wells': []})
+        
+        wells = []
+        for filename in os.listdir(wells_folder):
+            if filename.endswith('.ptrc'):
+                file_path = os.path.join(wells_folder, filename)
+                try:
+                    from utils.well_models import Well
+                    well = Well.load(file_path)
+                    wells.append({
+                        'id': well.name,
+                        'name': well.name,
+                        'uwi': well.uwi,
+                        'path': file_path,
+                        'created_at': well.metadata.get('created_at'),
+                        'source': well.metadata.get('source', 'manual')
+                    })
+                except Exception as e:
+                    print(f"Error loading well {filename}: {e}")
+                    continue
+        
+        wells.sort(key=lambda x: x['name'])
+        return jsonify({'wells': wells})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Start Vite dev server in background on port 5173
-VITE_PORT=5173 npm run dev:vite &
+./node_modules/.bin/vite --port 5173 --host 0.0.0.0 &
 VITE_PID=$!
 
-# Wait a bit for Vite to start
-sleep 2
+# Wait for Vite to start
+sleep 3
 
 # Start Flask server on port 5000
 export VITE_URL=http://localhost:5173

@@ -28,92 +28,11 @@ export default function NewWellDialog({
   projectPath,
   onWellCreated 
 }: NewWellDialogProps) {
-  const [wellName, setWellName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [lasFile, setLasFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [lasPreview, setLasPreview] = useState<any>(null);
   const { toast } = useToast();
-
-  const handleCreateWell = async () => {
-    if (!wellName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a well name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!projectPath || projectPath === "No path selected") {
-      toast({
-        title: "Error",
-        description: "No project is currently open. Please open or create a project first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(wellName.trim())) {
-      toast({
-        title: "Error",
-        description: "Well name can only contain letters, numbers, hyphens, and underscores",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreating(true);
-
-    try {
-      const response = await fetch("/api/wells/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: wellName.trim(),
-          projectPath: projectPath,
-          description: description.trim() || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create well");
-      }
-
-      const result = await response.json();
-
-      toast({
-        title: "Success",
-        description: `Well "${wellName}" created successfully`,
-      });
-
-      if (onWellCreated) {
-        onWellCreated({
-          id: result.well.id,
-          name: result.well.name,
-          path: result.filePath,
-        });
-      }
-
-      setWellName("");
-      setDescription("");
-      onOpenChange(false);
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to create well. Please try again.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const handleCsvUpload = async () => {
     if (!csvFile) {
@@ -249,9 +168,7 @@ export default function NewWellDialog({
   };
 
   const handleDialogClose = (open: boolean) => {
-    if (!open && !isCreating && !isUploading) {
-      setWellName("");
-      setDescription("");
+    if (!open && !isUploading) {
       setCsvFile(null);
       setLasFile(null);
       setLasPreview(null);
@@ -312,69 +229,15 @@ export default function NewWellDialog({
         <DialogHeader>
           <DialogTitle>Create New Well</DialogTitle>
           <DialogDescription>
-            Create a single well, upload a LAS file, or upload a CSV file with multiple wells.
+            Upload a LAS file or CSV file with well data to create wells in your project.
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="single" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="single">Single Well</TabsTrigger>
+        <Tabs defaultValue="las" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="las">Upload LAS</TabsTrigger>
             <TabsTrigger value="csv">Upload CSV</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="single" className="space-y-4 pt-4">
-            <div className="grid gap-2">
-              <Label htmlFor="well-name">Well Name</Label>
-              <Input
-                id="well-name"
-                placeholder="Enter well name (e.g., WELL-001)"
-                value={wellName}
-                onChange={(e) => setWellName(e.target.value)}
-                disabled={isCreating}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isCreating) {
-                    handleCreateWell();
-                  }
-                }}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="well-description">Description (Optional)</Label>
-              <Textarea
-                id="well-description"
-                placeholder="Enter well description or notes..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isCreating}
-                rows={3}
-              />
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium">Current Project:</p>
-              <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
-              {projectPath && projectPath !== "No path selected" && (
-                <p className="font-mono text-xs mt-1">
-                  Will save to: {projectPath}/10-WELLS/{wellName || "[well-name]"}.json
-                </p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isCreating}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleCreateWell} disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create Well"}
-              </Button>
-            </DialogFooter>
-          </TabsContent>
           
           <TabsContent value="las" className="space-y-4 pt-4">
             <div className="grid gap-2">
@@ -438,7 +301,7 @@ export default function NewWellDialog({
               <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
               {projectPath && projectPath !== "No path selected" && (
                 <p className="font-mono text-xs mt-1">
-                  Well will be saved to: {projectPath}/10-WELLS/
+                  Well will be saved to: {projectPath}/10-WELLS/[well-name].ptrc
                 </p>
               )}
             </div>
@@ -496,7 +359,7 @@ export default function NewWellDialog({
               <p className="font-mono text-xs mt-1">{projectPath || "No project selected"}</p>
               {projectPath && projectPath !== "No path selected" && (
                 <p className="font-mono text-xs mt-1">
-                  Wells will be saved to: {projectPath}/10-WELLS/
+                  Wells will be saved to: {projectPath}/10-WELLS/[well-name].ptrc
                 </p>
               )}
             </div>

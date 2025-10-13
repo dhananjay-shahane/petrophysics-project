@@ -6,7 +6,25 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
-### October 13, 2025 - Flask Migration & Project Creation
+### October 13, 2025 - LAS File Processing & Well Management
+- **LAS File Upload & Processing**: Complete LAS file import system
+  - Upload LAS files directly through the "Create New Well" dialog
+  - LAS files are parsed using lasio library and converted to Well objects
+  - Wells are saved as `.ptrc` files (JSON format) in the project's `10-WELLS` folder
+  - Original LAS files are copied to `02-INPUT_LAS_FOLDER` for reference
+  - Real-time LAS file preview showing well info, curves, and data points before upload
+  - Removed "Single Well" manual creation tab (users now only upload LAS or CSV files)
+- **Well Data Models** (flask/utils/well_models.py):
+  - `Well` class: Main well object with metadata, constants, and datasets
+  - `Dataset` class: Container for well log curves with index log (default: DEPT)
+  - `WellLog` class: Individual log curve with mnemonic, unit, description, and data
+  - `Constant` class: Well parameters (UWI, company, location, etc.)
+  - Serialize/deserialize methods for JSON persistence (.ptrc format)
+- **LAS Processor** (flask/utils/las_processor.py):
+  - `parse_las_file()`: Extract well information from LAS files
+  - `las_to_well()`: Convert LAS data to Well object with all curves and metadata
+  - `save_well_to_project()`: Save well as .ptrc and copy LAS to project folders
+  - `preview_las()`: Generate preview information without saving
 - **Flask as Main Server**: Replaced Express with Flask as the primary server
   - Flask server runs on port 5000 (main server)
   - Vite dev server runs on port 5173 (proxied through Flask in development)
@@ -20,15 +38,13 @@ A professional petrophysics data analysis application featuring a dockable windo
     - 09-SPECS, 10-WELLS
   - Validation prevents duplicate projects and invalid names
   - Flask utilities organized in flask/utils/ directory
-- **Removed Functionality**:
-  - Removed all Node.js/Express routes for wells creation and wells listing
-  - Removed all Flask backend files from server/flask_app (Python routes, models, utils)
-  - Removed Python LAS processing functionality
-  - Wells panel now shows "No wells available"
 - **Flask API Routes** (flask/routes.py):
   - `/api/projects/create` - Create new project with standard folder structure
   - `/api/directories/*` - Directory management (list, create, delete, rename)
   - `/api/data/*` - Data explorer (list, file reading)
+  - `/api/wells/preview-las` - Preview LAS file content before upload
+  - `/api/wells/create-from-las` - Upload and process LAS file, create well as .ptrc
+  - `/api/wells/list` - List all wells in a project (reads .ptrc files from 10-WELLS)
 - **Development Setup**:
   - dev.sh script starts both Vite and Flask servers
   - npm run dev uses bash script to orchestrate both servers
@@ -41,33 +57,12 @@ A professional petrophysics data analysis application featuring a dockable windo
   - Supports JSON formatting and text file display
   - Includes loading states and error handling
   - Visual indicators show which folders contain files
-- **Flask-Based Backend Implementation** (Latest Update)
-  - Converted Node.js backend logic to Flask for better Python integration
-  - Flask server runs on port 5001, proxied through Express on port 5000
-  - Modular Flask application structure with blueprints and utilities
-  - **Data Models**: Well, Dataset, WellLog, Constant classes based on reference implementation
-  - **Project Management Routes** (`/api/projects`):
-    - POST `/create` - Create new project with folder structure
-    - GET `/list` - List all projects
-  - **Wells Management Routes** (`/api/wells`):
-    - POST `/upload-las` - Upload and process LAS files
-    - GET `/list` - List all wells in a project
-    - GET `/<well_name>` - Get specific well data
-    - GET `/` - Get all wells
-  - **Visualization Routes** (`/api/visualization`):
-    - POST `/well-log-plot` - Generate well log plots using matplotlib
-    - POST `/cross-plot` - Generate cross plots with correlation analysis
-    - GET `/log-data` - Get formatted log data for frontend visualization
-  - **Utilities**:
-    - `WellManager` - Handles well creation, loading, and LAS processing
-    - `PlotGenerator` - Generates matplotlib plots (well logs and cross plots)
-- **LAS File Processing System**: Integrated Flask-based well management system
-  - Upload LAS files through API endpoints
-  - Parse LAS files using lasio library
-  - Create Well and Dataset objects with proper structure
-  - Store well data as JSON in 10-WELLS folder (petrophysics-workplace structure)
-  - Support for multiple datasets per well
-  - Automatic well header and reference dataset creation
+- **Well File Format (.ptrc)**:
+  - Custom JSON-based format for storing well data
+  - Extension: `.ptrc` (Petrophysics Resource Container)
+  - Structure includes well name, UWI, constants, datasets with logs, and metadata
+  - Fully serializable and deserializable using Well class methods
+  - Each well is saved as `[well-name].ptrc` in the 10-WELLS folder
 - **Feedback Panel Enhancement**: Converted to Python execution log viewer
   - Removed file upload UI from Feedback panel
   - Added terminal-style Python log console with color-coded output (info/error/success/warning)
