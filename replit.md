@@ -6,18 +6,27 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
-### October 13, 2025 - Replit Environment Setup Complete
-- **GitHub Import Completed**: Successfully imported and configured petrophysics application for Replit
-- **Environment Setup**: Fully configured for Replit environment with Node.js and Python dependencies
-  - Node.js dependencies installed via npm (533 packages)
-  - Python dependencies installed via uv (23 packages including Flask, matplotlib, lasio)
-  - Development workflow configured to run on port 5000
-  - VM deployment configured with build and production scripts
-- **Server Configuration**: 
-  - Express server on port 5000 (frontend + API gateway)
-  - Flask backend on port 5001 (Python processing)
-  - Vite dev server configured with host 0.0.0.0 and allowedHosts: true for Replit proxy
-  - Both servers start automatically via npm run dev
+### October 13, 2025 - Flask Migration & Cleanup
+- **Flask as Main Server**: Replaced Express with Flask as the primary server
+  - Flask server runs on port 5000 (main server)
+  - Vite dev server runs on port 5173 (proxied through Flask in development)
+  - Flask proxies all requests to Vite in development mode
+  - Production serves static files from dist folder
+- **Removed Functionality**:
+  - Removed all Node.js/Express routes for project upload, wells creation, and wells listing
+  - Removed all Flask backend files from server/flask_app (Python routes, models, utils)
+  - Removed Python LAS processing functionality
+  - Wells panel now shows "No wells available"
+- **Flask API Routes** (flask/routes.py):
+  - `/api/directories/*` - Directory management (list, create, delete, rename)
+  - `/api/data/*` - Data explorer (list, file reading)
+- **Development Setup**:
+  - dev.sh script starts both Vite and Flask servers
+  - npm run dev uses bash script to orchestrate both servers
+  - Vite serves on port 5173, Flask proxies on port 5000
+- **Deployment Configuration**: 
+  - VM deployment with Vite build and Flask production server
+  - Flask serves static files from dist folder in production
 - **File Preview Feature**: Enhanced Data Explorer with file preview functionality
   - Users can now single-click on files to view their contents in a preview dialog
   - Supports JSON formatting and text file display
