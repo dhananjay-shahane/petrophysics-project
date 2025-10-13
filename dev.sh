@@ -1,16 +1,15 @@
 #!/bin/bash
 
-# Start Vite dev server in background on port 5173
-./node_modules/.bin/vite --port 5173 --host 0.0.0.0 &
-VITE_PID=$!
+# Start Flask API server in background on port 5001
+export FLASK_PORT=5001
+uv run python flask/app.py &
+FLASK_PID=$!
 
-# Wait for Vite to start
-sleep 3
+# Wait for Flask to start
+sleep 2
 
-# Start Flask server on port 5000
-export VITE_URL=http://localhost:5173
-export PORT=5000
-uv run python flask/app.py
+# Start Vite dev server on port 5000 (frontend)
+./node_modules/.bin/vite --port 5000 --host 0.0.0.0
 
 # Cleanup on exit
-kill $VITE_PID 2>/dev/null
+kill $FLASK_PID 2>/dev/null

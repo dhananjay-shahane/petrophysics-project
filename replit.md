@@ -6,6 +6,26 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
+### October 13, 2025 - Replit Environment Setup
+- **Development Environment Configuration**:
+  - Frontend (Vite + React) runs on port 5000 with 0.0.0.0 host (user-facing)
+  - Backend (Flask API) runs on port 5001 with localhost (internal)
+  - Vite proxies `/api/*` requests to Flask backend
+  - Configured Vite with `allowedHosts: true` for Replit proxy compatibility
+- **Production Deployment**:
+  - VM deployment configured for always-running server
+  - Build step: `npm run build` creates optimized frontend bundle
+  - Production: Flask serves both static files and API on port 5000
+  - Environment variable `NODE_ENV=production` switches modes
+- **Workflow Setup**:
+  - Single workflow "Server" runs `bash dev.sh`
+  - Starts Flask backend first, then Vite frontend
+  - Development mode enables hot reloading for both servers
+- **Project Structure**:
+  - `dev.sh`: Development startup (Vite on 5000, Flask on 5001)
+  - `production.sh`: Production startup (Flask serves all on 5000)
+  - `.gitignore`: Updated with Python virtual env and node_modules
+
 ### October 13, 2025 - LAS File Processing & Well Management
 - **LAS File Upload & Processing**: Complete LAS file import system
   - Upload LAS files directly through the "Create New Well" dialog
