@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 from flask import Blueprint, request, jsonify
+from utils.project_utils import create_project_structure
 
 api = Blueprint('api', __name__)
 
@@ -15,6 +16,35 @@ def validate_path(path_str):
     resolved = os.path.abspath(path_str)
     workspace = os.path.abspath(WORKSPACE_ROOT)
     return resolved.startswith(workspace)
+
+# Project Management Routes
+@api.route('/projects/create', methods=['POST'])
+def create_project():
+    try:
+        data = request.json
+        project_name = data.get('name', '').strip()
+        parent_path = data.get('path', WORKSPACE_ROOT).strip()
+        
+        if not project_name:
+            return jsonify({'error': 'Project name is required'}), 400
+        
+        if not project_name.replace('-', '').replace('_', '').isalnum():
+            return jsonify({'error': 'Project name can only contain letters, numbers, hyphens, and underscores'}), 400
+        
+        resolved_parent = os.path.abspath(parent_path)
+        if not validate_path(resolved_parent):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        if not os.path.exists(resolved_parent):
+            return jsonify({'error': 'Parent directory does not exist'}), 400
+        
+        result = create_project_structure(project_name, resolved_parent)
+        return jsonify(result), 201
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to create project: {str(e)}'}), 500
 
 # Directory Management Routes
 @api.route('/directories/list', methods=['GET'])
