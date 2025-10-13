@@ -4,6 +4,7 @@ import type { WellData } from "./AdvancedDockWorkspace";
 
 export default function WellLogPlotPanel({ 
   selectedWell,
+  projectPath,
   onClose,
   onMinimize,
   isFloating,
@@ -14,6 +15,7 @@ export default function WellLogPlotPanel({
   onGeometryChange
 }: { 
   selectedWell?: WellData | null;
+  projectPath?: string;
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -37,7 +39,7 @@ export default function WellLogPlotPanel({
       onGeometryChange={onGeometryChange}
       defaultSize={{ width: 1000, height: 700 }}
     >
-      <WellLogPlot selectedWell={selectedWell} />
+      <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
     </DockablePanel>
   );
 }

@@ -141,8 +141,24 @@ def get_all_wells():
 def get_log_plot_data(well_name):
     """Get well log plot data for visualization"""
     try:
-        project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
-        wells_folder = os.path.join(project_path, '10-WELLS')
+        # Accept projectPath from query params, default to workspace root
+        project_path = request.args.get('projectPath')
+        if not project_path or not project_path.strip() or project_path == "No path selected":
+            project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        
+        # Security: Validate project path is within workspace using commonpath
+        workspace_root = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        resolved_workspace = os.path.realpath(workspace_root)
+        resolved_project_path = os.path.realpath(project_path)
+        
+        try:
+            common = os.path.commonpath([resolved_workspace, resolved_project_path])
+            if common != resolved_workspace:
+                return jsonify({"error": "Access denied: project path outside workspace"}), 403
+        except ValueError:
+            return jsonify({"error": "Access denied: invalid project path"}), 403
+        
+        wells_folder = os.path.join(resolved_project_path, '10-WELLS')
         well_path = os.path.join(wells_folder, f"{well_name}.json")
         
         if not os.path.exists(well_path):
@@ -151,32 +167,56 @@ def get_log_plot_data(well_name):
         with open(well_path, 'r') as f:
             well_data = json.load(f)
         
-        # Find the first continuous dataset (LOG_DATA or similar)
+        # Check if well has new format (datasets) or old format (flat data array)
         datasets = well_data.get('datasets', [])
-        log_dataset = None
-        
-        for ds in datasets:
-            if ds.get('type') in ['Cont', 'LOG_DATA', 'Continuous']:
-                log_dataset = ds
-                break
-        
-        if not log_dataset:
-            return jsonify({"error": "No log dataset found"}), 404
-        
-        # Format data for frontend
-        index_log = log_dataset.get('index_log', [])
-        index_name = log_dataset.get('index_name', 'DEPT')
-        well_logs = log_dataset.get('well_logs', [])
+        flat_data = well_data.get('data', [])
         
         tracks = []
-        for log in well_logs[:6]:  # Limit to 6 tracks
-            tracks.append({
-                'name': log.get('name'),
-                'unit': log.get('unit', ''),
-                'data': log.get('log', []),
-                'indexLog': index_log,
-                'indexName': index_name
-            })
+        index_name = 'DEPT'
+        
+        if datasets:
+            # New format: Find the first continuous dataset
+            log_dataset = None
+            for ds in datasets:
+                if ds.get('type') in ['Cont', 'LOG_DATA', 'Continuous']:
+                    log_dataset = ds
+                    break
+            
+            if not log_dataset:
+                return jsonify({"error": "No log dataset found"}), 404
+            
+            # Format data for frontend
+            index_log = log_dataset.get('index_log', [])
+            index_name = log_dataset.get('index_name', 'DEPT')
+            well_logs = log_dataset.get('well_logs', [])
+            
+            for log in well_logs[:6]:  # Limit to 6 tracks
+                tracks.append({
+                    'name': log.get('name'),
+                    'unit': log.get('unit', ''),
+                    'data': log.get('log', []),
+                    'indexLog': index_log,
+                    'indexName': index_name
+                })
+        
+        elif flat_data:
+            # Old format: Convert flat data array to tracks
+            if len(flat_data) > 0:
+                # Get all column names except DEPT
+                columns = [k for k in flat_data[0].keys() if k != 'DEPT']
+                depth_values = [row.get('DEPT') for row in flat_data]
+                
+                for col in columns[:6]:  # Limit to 6 tracks
+                    log_values = [row.get(col) for row in flat_data]
+                    tracks.append({
+                        'name': col,
+                        'unit': '',
+                        'data': log_values,
+                        'indexLog': depth_values,
+                        'indexName': 'DEPT'
+                    })
+        else:
+            return jsonify({"error": "No log data found in well"}), 404
         
         return jsonify({
             'wellName': well_data.get('well_name', well_name),
@@ -197,12 +237,28 @@ def get_cross_plot_data(well_name):
         x_curve = data.get('xCurve')
         y_curve = data.get('yCurve')
         color_curve = data.get('colorCurve')
+        project_path = data.get('projectPath')
         
         if not x_curve or not y_curve:
             return jsonify({"error": "xCurve and yCurve are required"}), 400
         
-        project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
-        wells_folder = os.path.join(project_path, '10-WELLS')
+        # Default to workspace root if no project path provided
+        if not project_path or not project_path.strip() or project_path == "No path selected":
+            project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        
+        # Security: Validate project path is within workspace using commonpath
+        workspace_root = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        resolved_workspace = os.path.realpath(workspace_root)
+        resolved_project_path = os.path.realpath(project_path)
+        
+        try:
+            common = os.path.commonpath([resolved_workspace, resolved_project_path])
+            if common != resolved_workspace:
+                return jsonify({"error": "Access denied: project path outside workspace"}), 403
+        except ValueError:
+            return jsonify({"error": "Access denied: invalid project path"}), 403
+        
+        wells_folder = os.path.join(resolved_project_path, '10-WELLS')
         well_path = os.path.join(wells_folder, f"{well_name}.json")
         
         if not os.path.exists(well_path):

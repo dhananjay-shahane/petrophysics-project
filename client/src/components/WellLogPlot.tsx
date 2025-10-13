@@ -17,10 +17,11 @@ interface LogPlotData {
 }
 
 interface WellLogPlotProps {
-  selectedWell?: { name: string; well_name?: string } | null;
+  selectedWell?: { name: string; well_name?: string; projectPath?: string } | null;
+  projectPath?: string;
 }
 
-export default function WellLogPlot({ selectedWell }: WellLogPlotProps) {
+export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotProps) {
   const [plotData, setPlotData] = useState<LogPlotData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,12 @@ export default function WellLogPlot({ selectedWell }: WellLogPlotProps) {
       
       try {
         const wellName = selectedWell.well_name || selectedWell.name;
-        const response = await fetch(`/api/wells/${encodeURIComponent(wellName)}/log-plot`);
+        // Include projectPath in query params if available
+        const path = projectPath || selectedWell.projectPath || '';
+        const url = path 
+          ? `/api/wells/${encodeURIComponent(wellName)}/log-plot?projectPath=${encodeURIComponent(path)}`
+          : `/api/wells/${encodeURIComponent(wellName)}/log-plot`;
+        const response = await fetch(url);
         
         if (!response.ok) {
           const errorData = await response.json();

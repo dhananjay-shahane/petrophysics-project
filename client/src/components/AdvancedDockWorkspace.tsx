@@ -562,7 +562,7 @@ export default function AdvancedDockWorkspace() {
       : panelId === 'feedback' 
       ? { onLoadWells: handleLoadWells }
       : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'
-      ? { selectedWell }
+      ? { selectedWell, projectPath }
       : {};
 
     if (panelState.floating) {
