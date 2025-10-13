@@ -13,6 +13,7 @@ import { Check, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import NewProjectDialog from "./NewProjectDialog";
+import DataExplorer from "./DataExplorer";
 
 interface MenuBarProps {
   onTogglePanel: (panelId: string) => void;
@@ -49,6 +50,7 @@ export default function MenuBar({
 }: MenuBarProps) {
   const { toast } = useToast();
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
+  const [dataExplorerOpen, setDataExplorerOpen] = useState(false);
 
   const handleNewProject = () => {
     setNewProjectDialogOpen(true);
@@ -119,6 +121,7 @@ export default function MenuBar({
             <DropdownMenuItem onClick={handleSave} data-testid="menu-save">Save</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onNewWell} data-testid="menu-new-well">New Well</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setDataExplorerOpen(true)} data-testid="menu-reveal-data">Reveal Data</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onTogglePanel("dataBrowser")} data-testid="menu-new-dockable">New Dockable Window</DropdownMenuItem>
             <DropdownMenuItem data-testid="menu-remove-widget">Remove Central Widget</DropdownMenuItem>
@@ -244,6 +247,11 @@ export default function MenuBar({
       <NewProjectDialog 
         open={newProjectDialogOpen}
         onOpenChange={setNewProjectDialogOpen}
+      />
+      
+      <DataExplorer
+        open={dataExplorerOpen}
+        onOpenChange={setDataExplorerOpen}
       />
     </>
   );
