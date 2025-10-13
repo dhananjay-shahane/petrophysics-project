@@ -87,15 +87,24 @@ app.use((req, res, next) => {
   // Serve static files from public directory FIRST (for well plots, etc.)
   app.use(express.static("public"));
 
-  // Proxy specific routes to Flask
-  const flaskRoutes = [
-    '/api/projects',
-    '/api/wells/upload-las',
-    '/api/wells/',
-    '/api/visualization'
-  ];
-
-  app.use(flaskRoutes, async (req, res) => {
+  // Proxy API routes to Flask - must be before registerRoutes
+  app.use('/api/*', async (req, res, next) => {
+    // Routes to proxy to Flask
+    const flaskPaths = [
+      '/api/projects',
+      '/api/wells/upload-las',
+      '/api/wells/',
+      '/api/visualization'
+    ];
+    
+    // Check if this route should go to Flask
+    const shouldProxy = flaskPaths.some(path => req.path.startsWith(path)) || 
+                        req.path.match(/\/api\/wells\/[^/]+\/(log-plot|cross-plot)/);
+    
+    if (!shouldProxy) {
+      return next(); // Let Express handle it
+    }
+    
     try {
       const flaskUrl = `${FLASK_URL}${req.path}`;
       const response = await axios({

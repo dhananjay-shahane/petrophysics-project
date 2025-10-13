@@ -122,3 +122,139 @@ def get_all_wells():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@wells_bp.route('/<well_name>/log-plot', methods=['GET'])
+def get_log_plot_data(well_name):
+    """Get well log plot data for visualization"""
+    try:
+        project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        wells_folder = os.path.join(project_path, '10-WELLS')
+        well_path = os.path.join(wells_folder, f"{well_name}.json")
+        
+        if not os.path.exists(well_path):
+            return jsonify({"error": "Well not found"}), 404
+        
+        with open(well_path, 'r') as f:
+            well_data = json.load(f)
+        
+        # Find the first continuous dataset (LOG_DATA or similar)
+        datasets = well_data.get('datasets', [])
+        log_dataset = None
+        
+        for ds in datasets:
+            if ds.get('type') in ['Cont', 'LOG_DATA', 'Continuous']:
+                log_dataset = ds
+                break
+        
+        if not log_dataset:
+            return jsonify({"error": "No log dataset found"}), 404
+        
+        # Format data for frontend
+        index_log = log_dataset.get('index_log', [])
+        index_name = log_dataset.get('index_name', 'DEPT')
+        well_logs = log_dataset.get('well_logs', [])
+        
+        tracks = []
+        for log in well_logs[:6]:  # Limit to 6 tracks
+            tracks.append({
+                'name': log.get('name'),
+                'unit': log.get('unit', ''),
+                'data': log.get('log', []),
+                'indexLog': index_log,
+                'indexName': index_name
+            })
+        
+        return jsonify({
+            'wellName': well_data.get('well_name', well_name),
+            'tracks': tracks,
+            'indexName': index_name
+        })
+    
+    except Exception as e:
+        import traceback
+        print(f"Error in log-plot endpoint: {traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
+
+@wells_bp.route('/<well_name>/cross-plot', methods=['POST'])
+def get_cross_plot_data(well_name):
+    """Generate cross plot data"""
+    try:
+        data = request.json
+        x_curve = data.get('xCurve')
+        y_curve = data.get('yCurve')
+        color_curve = data.get('colorCurve')
+        
+        if not x_curve or not y_curve:
+            return jsonify({"error": "xCurve and yCurve are required"}), 400
+        
+        project_path = os.path.join(os.getcwd(), 'petrophysics-workplace')
+        wells_folder = os.path.join(project_path, '10-WELLS')
+        well_path = os.path.join(wells_folder, f"{well_name}.json")
+        
+        if not os.path.exists(well_path):
+            return jsonify({"error": "Well not found"}), 404
+        
+        with open(well_path, 'r') as f:
+            well_data = json.load(f)
+        
+        # Find the continuous dataset
+        datasets = well_data.get('datasets', [])
+        log_dataset = None
+        
+        for ds in datasets:
+            if ds.get('type') in ['Cont', 'LOG_DATA', 'Continuous']:
+                log_dataset = ds
+                break
+        
+        if not log_dataset:
+            return jsonify({"error": "No log dataset found"}), 404
+        
+        # Get the log data
+        well_logs = log_dataset.get('well_logs', [])
+        x_log = None
+        y_log = None
+        color_log = None
+        
+        for log in well_logs:
+            if log.get('name') == x_curve:
+                x_log = log.get('log', [])
+            if log.get('name') == y_curve:
+                y_log = log.get('log', [])
+            if color_curve and log.get('name') == color_curve:
+                color_log = log.get('log', [])
+        
+        if x_log is None or y_log is None:
+            return jsonify({"error": "Curves not found"}), 404
+        
+        # Filter valid data points
+        data_points = []
+        for i in range(min(len(x_log), len(y_log))):
+            x_val = x_log[i]
+            y_val = y_log[i]
+            
+            if x_val is not None and y_val is not None and x_val != -999.25 and y_val != -999.25:
+                point = {'x': x_val, 'y': y_val}
+                if color_log and i < len(color_log) and color_log[i] is not None:
+                    point['color'] = color_log[i]
+                data_points.append(point)
+        
+        # Calculate correlation if we have data
+        correlation = 0
+        if len(data_points) > 1:
+            import numpy as np
+            x_vals = [p['x'] for p in data_points]
+            y_vals = [p['y'] for p in data_points]
+            correlation = np.corrcoef(x_vals, y_vals)[0, 1]
+        
+        return jsonify({
+            'data': data_points,
+            'correlation': float(correlation) if not np.isnan(correlation) else 0,
+            'xCurve': x_curve,
+            'yCurve': y_curve,
+            'colorCurve': color_curve
+        })
+    
+    except Exception as e:
+        import traceback
+        print(f"Error in cross-plot endpoint: {traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500

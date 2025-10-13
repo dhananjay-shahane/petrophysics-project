@@ -13,6 +13,26 @@ A professional petrophysics data analysis application featuring a dockable windo
   - Supports JSON formatting and text file display
   - Includes loading states and error handling
   - Visual indicators show which folders contain files
+- **Flask-Based Backend Implementation** (Latest Update)
+  - Converted Node.js backend logic to Flask for better Python integration
+  - Flask server runs on port 5001, proxied through Express on port 5000
+  - Modular Flask application structure with blueprints and utilities
+  - **Data Models**: Well, Dataset, WellLog, Constant classes based on reference implementation
+  - **Project Management Routes** (`/api/projects`):
+    - POST `/create` - Create new project with folder structure
+    - GET `/list` - List all projects
+  - **Wells Management Routes** (`/api/wells`):
+    - POST `/upload-las` - Upload and process LAS files
+    - GET `/list` - List all wells in a project
+    - GET `/<well_name>` - Get specific well data
+    - GET `/` - Get all wells
+  - **Visualization Routes** (`/api/visualization`):
+    - POST `/well-log-plot` - Generate well log plots using matplotlib
+    - POST `/cross-plot` - Generate cross plots with correlation analysis
+    - GET `/log-data` - Get formatted log data for frontend visualization
+  - **Utilities**:
+    - `WellManager` - Handles well creation, loading, and LAS processing
+    - `PlotGenerator` - Generates matplotlib plots (well logs and cross plots)
 - **LAS File Processing System**: Integrated Flask-based well management system
   - Upload LAS files through API endpoints
   - Parse LAS files using lasio library
@@ -20,13 +40,6 @@ A professional petrophysics data analysis application featuring a dockable windo
   - Store well data as JSON in 10-WELLS folder (petrophysics-workplace structure)
   - Support for multiple datasets per well
   - Automatic well header and reference dataset creation
-- **Visualization System - Node.js Implementation**: Migrated from Python to Node.js
-  - Removed Python-based matplotlib visualization scripts
-  - Created Node.js visualization endpoints for well log and cross-plot data
-  - GET `/api/wells/:wellName/log-plot` - returns formatted log data for frontend visualization
-  - POST `/api/wells/:wellName/cross-plot` - returns cross-plot data with correlation statistics
-  - Correlation coefficient calculation implemented in TypeScript
-  - Data preprocessing includes null value filtering and range calculations
 - **Feedback Panel Enhancement**: Converted to Python execution log viewer
   - Removed file upload UI from Feedback panel
   - Added terminal-style Python log console with color-coded output (info/error/success/warning)
@@ -78,29 +91,49 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 
 **Server Framework**
-- Express.js with TypeScript
-- ESM module system (type: "module")
-- Development: tsx for hot reloading
-- Production: esbuild for bundling
+- **Express.js** (Port 5000) - Frontend serving and API gateway
+  - TypeScript with ESM module system (type: "module")
+  - Development: tsx for hot reloading
+  - Production: esbuild for bundling
+  - Proxies specific routes to Flask backend
+- **Flask** (Port 5001) - Python backend for LAS processing and visualization
+  - Flask-CORS enabled for cross-origin requests
+  - Modular structure with blueprints
+  - Runs as subprocess managed by Express
 
 **API Structure**
 - RESTful endpoints under `/api` namespace
-- File upload handling with multer middleware
-- LAS (Log ASCII Standard) and CSV file parsing
+- File upload handling with multer (Express) and werkzeug (Flask)
+- LAS (Log ASCII Standard) file parsing using lasio
 - Project management: CRUD operations for projects and wells
-- Python integration for matplotlib plot generation
+- Visualization generation using matplotlib
+
+**Flask Application Structure**
+```
+server/flask_app/
+├── app.py                    # Main Flask application with blueprints
+├── models.py                 # Data models (Well, Dataset, WellLog, Constant)
+├── routes/
+│   ├── projects.py          # Project management endpoints
+│   ├── wells.py             # Well and LAS upload endpoints
+│   └── visualization.py     # Plot generation endpoints
+└── utils/
+    ├── las_processor.py     # WellManager for LAS file processing
+    └── plot_generator.py    # PlotGenerator for matplotlib visualizations
+```
 
 **File Processing Pipeline**
-1. File upload via multipart/form-data
-2. Parse LAS files to extract well information and curve data
-3. Parse CSV files using csv-parse/sync
-4. Store parsed data in memory (MemStorage)
-5. Generate visualization plots on-demand
+1. File upload via multipart/form-data to Flask
+2. LAS file parsing using lasio library
+3. Well and Dataset object creation
+4. JSON storage in project's 10-WELLS folder
+5. On-demand plot generation using matplotlib
 
 **Session & Storage**
-- In-memory storage implementation (MemStorage class)
-- Session management with connect-pg-simple (configured for PostgreSQL)
+- File-based storage for well data (JSON format)
+- In-memory storage for session data (MemStorage class)
 - Static file serving from public directory for generated plots
+- Petrophysics workspace structure maintained in filesystem
 
 ### Data Storage Solutions
 
