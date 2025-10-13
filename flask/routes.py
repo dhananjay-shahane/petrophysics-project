@@ -11,17 +11,20 @@ WORKSPACE_ROOT = os.path.join(os.getcwd(), "petrophysics-workplace")
 # Ensure workspace exists
 Path(WORKSPACE_ROOT).mkdir(parents=True, exist_ok=True)
 
-# Helper function to validate paths
+# Helper function to validate paths (prevents symlink traversal)
 def validate_path(path_str):
-    resolved = os.path.abspath(path_str)
-    workspace = os.path.abspath(WORKSPACE_ROOT)
+    resolved = os.path.realpath(path_str)
+    workspace = os.path.realpath(WORKSPACE_ROOT)
     return resolved.startswith(workspace)
 
 # Project Management Routes
 @api.route('/projects/create', methods=['POST'])
 def create_project():
     try:
-        data = request.json
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({'error': 'Invalid or missing JSON payload'}), 400
+        
         project_name = data.get('name', '').strip()
         parent_path = data.get('path', WORKSPACE_ROOT).strip()
         

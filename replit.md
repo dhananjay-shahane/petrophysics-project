@@ -6,18 +6,27 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
-### October 13, 2025 - Flask Migration & Cleanup
+### October 13, 2025 - Flask Migration & Project Creation
 - **Flask as Main Server**: Replaced Express with Flask as the primary server
   - Flask server runs on port 5000 (main server)
   - Vite dev server runs on port 5173 (proxied through Flask in development)
   - Flask proxies all requests to Vite in development mode
   - Production serves static files from dist folder
+- **Project Creation Feature**: Implemented Flask-based project creation
+  - Users can create new projects via Project menu > New
+  - Projects are created with standard petrophysics folder structure:
+    - 01-OUTPUT, 02-INPUT_LAS_FOLDER, 03-DEVIATION, 04-WELL_HEADER
+    - 05-TOPS_FOLDER, 06-ZONES_FOLDER, 07-DATA_EXPORTS, 08-VOL_MODELS
+    - 09-SPECS, 10-WELLS
+  - Validation prevents duplicate projects and invalid names
+  - Flask utilities organized in flask/utils/ directory
 - **Removed Functionality**:
-  - Removed all Node.js/Express routes for project upload, wells creation, and wells listing
+  - Removed all Node.js/Express routes for wells creation and wells listing
   - Removed all Flask backend files from server/flask_app (Python routes, models, utils)
   - Removed Python LAS processing functionality
   - Wells panel now shows "No wells available"
 - **Flask API Routes** (flask/routes.py):
+  - `/api/projects/create` - Create new project with standard folder structure
   - `/api/directories/*` - Directory management (list, create, delete, rename)
   - `/api/data/*` - Data explorer (list, file reading)
 - **Development Setup**:
