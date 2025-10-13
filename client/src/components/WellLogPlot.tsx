@@ -1,89 +1,165 @@
 import { useEffect, useState } from "react";
-import type { WellData } from "./AdvancedDockWorkspace";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface Track {
+  name: string;
+  unit: string;
+  description: string;
+  data: number[];
+  indexLog: number[];
+  indexName: string;
+}
+
+interface LogPlotData {
+  wellName: string;
+  tracks: Track[];
+  metadata?: any;
+}
 
 interface WellLogPlotProps {
-  selectedWell?: WellData | null;
+  selectedWell?: { name: string; well_name?: string } | null;
 }
 
 export default function WellLogPlot({ selectedWell }: WellLogPlotProps) {
-  const [plotUrl, setPlotUrl] = useState<string | null>(null);
+  const [plotData, setPlotData] = useState<LogPlotData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedWell) {
-      setPlotUrl(null);
+      setPlotData(null);
       setError(null);
       return;
     }
 
-    if (!selectedWell.data || !Array.isArray(selectedWell.data) || selectedWell.data.length === 0) {
-      setError("No well log data available");
-      return;
-    }
-
-    const generatePlot = async () => {
+    const fetchPlotData = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        const response = await fetch('/api/wells/generate-plot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wellPath: selectedWell.path })
-        });
+        const wellName = selectedWell.well_name || selectedWell.name;
+        const response = await fetch(`/api/wells/${wellName}/log-plot`);
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to generate plot');
+          throw new Error(errorData.error || 'Failed to fetch plot data');
         }
         
         const data = await response.json();
+        setPlotData(data);
         
-        if (data.success && data.plotUrl) {
-          setPlotUrl(data.plotUrl);
-        } else {
-          throw new Error('No plot URL returned');
+        if ((window as any).addPythonLog) {
+          (window as any).addPythonLog(`Loaded well log data for ${wellName}`, 'success');
         }
       } catch (err: any) {
-        console.error('Error generating plot:', err);
-        setError(err.message || 'Failed to generate well log plot');
+        console.error('Error fetching plot data:', err);
+        setError(err.message || 'Failed to load well log data');
+        
+        if ((window as any).addPythonLog) {
+          (window as any).addPythonLog(`Error: ${err.message}`, 'error');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    generatePlot();
+    fetchPlotData();
   }, [selectedWell]);
 
-
-  return (
-    <div className="w-full h-full overflow-auto bg-white p-4 flex items-center justify-center">
-      {!selectedWell ? (
+  if (!selectedWell) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background">
         <div className="text-center text-muted-foreground">
           <p className="text-lg font-medium">No well selected</p>
           <p className="text-sm mt-2">Select a well from the Wells panel to display the log plot</p>
         </div>
-      ) : isLoading ? (
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background">
         <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium">Generating well log plot...</p>
-          <p className="text-sm mt-2">{selectedWell.name}</p>
+          <p className="text-lg font-medium">Loading well log data...</p>
+          <p className="text-sm mt-2">{selectedWell.well_name || selectedWell.name}</p>
         </div>
-      ) : error ? (
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background">
         <div className="text-center text-destructive">
-          <p className="text-lg font-medium">Error generating plot</p>
+          <p className="text-lg font-medium">Error loading plot data</p>
           <p className="text-sm mt-2">{error}</p>
         </div>
-      ) : plotUrl ? (
-        <div className="w-full h-full flex flex-col">
-          <div className="text-sm font-medium mb-2 text-center">{selectedWell.name}</div>
-          <img 
-            src={plotUrl} 
-            alt={`Well log plot for ${selectedWell.name}`}
-            className="max-w-full max-h-full object-contain mx-auto"
-          />
+      </div>
+    );
+  }
+
+  if (!plotData || !plotData.tracks || plotData.tracks.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-background">
+        <div className="text-center text-muted-foreground">
+          <p className="text-lg font-medium">No log data available</p>
         </div>
-      ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full overflow-auto bg-background p-4">
+      <div className="text-lg font-semibold mb-4 text-center">{plotData.wellName}</div>
+      <div className="flex gap-4 overflow-x-auto">
+        {plotData.tracks.slice(0, 6).map((track, index) => {
+          const chartData = track.data.map((value, i) => ({
+            depth: track.indexLog[i],
+            value: value
+          })).filter(d => d.value !== null && !isNaN(d.value));
+
+          const colors = ['#2563eb', '#9333ea', '#059669', '#dc2626', '#f59e0b', '#8b5cf6'];
+          
+          return (
+            <div key={index} className="min-w-[200px] flex-shrink-0">
+              <div className="text-sm font-medium text-center mb-2">
+                {track.name}
+                {track.unit && <span className="text-xs text-muted-foreground ml-1">({track.unit})</span>}
+              </div>
+              <ResponsiveContainer width={200} height={500}>
+                <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis 
+                    dataKey="value" 
+                    type="number" 
+                    domain={['auto', 'auto']}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis 
+                    dataKey="depth" 
+                    reversed 
+                    type="number"
+                    domain={['auto', 'auto']}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: track.indexName, angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ fontSize: 11, backgroundColor: '#1e293b', border: '1px solid #334155' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke={colors[index % colors.length]} 
+                    dot={false} 
+                    strokeWidth={1.5}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

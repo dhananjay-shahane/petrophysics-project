@@ -9,9 +9,29 @@ A professional petrophysics data analysis application featuring a dockable windo
 ### October 2025 - Replit Environment Setup & Enhancements
 - **Environment Setup**: Successfully configured for Replit environment with Node.js and Python dependencies
 - **File Preview Feature**: Enhanced Data Explorer with file preview functionality
-  - Users can now double-click on files to view their contents in a preview dialog
+  - Users can now single-click on files to view their contents in a preview dialog
   - Supports JSON formatting and text file display
   - Includes loading states and error handling
+  - Visual indicators show which folders contain files
+- **LAS File Processing System**: Integrated Flask-based well management system
+  - Upload LAS files through API endpoints
+  - Parse LAS files using lasio library
+  - Create Well and Dataset objects with proper structure
+  - Store well data as JSON in 10-WELLS folder (petrophysics-workplace structure)
+  - Support for multiple datasets per well
+  - Automatic well header and reference dataset creation
+- **Visualization System - Node.js Implementation**: Migrated from Python to Node.js
+  - Removed Python-based matplotlib visualization scripts
+  - Created Node.js visualization endpoints for well log and cross-plot data
+  - GET `/api/wells/:wellName/log-plot` - returns formatted log data for frontend visualization
+  - POST `/api/wells/:wellName/cross-plot` - returns cross-plot data with correlation statistics
+  - Correlation coefficient calculation implemented in TypeScript
+  - Data preprocessing includes null value filtering and range calculations
+- **Feedback Panel Enhancement**: Converted to Python execution log viewer
+  - Removed file upload UI from Feedback panel
+  - Added terminal-style Python log console with color-coded output (info/error/success/warning)
+  - Auto-scroll to latest logs with clear functionality
+  - Global window.addPythonLog function for logging from API calls
 - **Deployment Configuration**: Set up VM deployment with production build pipeline
   - Build process: Vite frontend build + esbuild backend bundle
   - Production server serves both frontend and API from single process
@@ -44,8 +64,9 @@ Preferred communication style: Simple, everyday language.
 
 **Visualization Components**
 - Recharts library for cross-plots, log plots, and well log visualization
-- Python matplotlib integration via server-side plot generation
+- Node.js-based data processing for visualization endpoints
 - Dynamic data binding from well data to chart components
+- Server-side correlation calculations and statistical analysis
 
 **UI Design System**
 - Tailwind CSS with custom design tokens

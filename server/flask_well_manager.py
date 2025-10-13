@@ -70,8 +70,9 @@ class Dataset:
         index_log = las.index.tolist()
         well_logs = []
         
+        index_name = getattr(las, 'index_name', 'DEPT')
         for curve in las.curves:
-            if curve.mnemonic != las.index_name:
+            if curve.mnemonic != index_name:
                 well_log = WellLog(
                     name=curve.mnemonic,
                     date=datetime.now().isoformat(),
@@ -96,7 +97,7 @@ class Dataset:
             type=dataset_type,
             wellname=well_name,
             index_log=index_log,
-            index_name=las.index_name,
+            index_name=index_name,
             well_logs=well_logs,
             metadata=metadata
         )
@@ -235,16 +236,17 @@ def upload_las():
         return jsonify({"error": "No file provided"}), 400
     
     file = request.files['file']
-    if file.filename == '':
+    filename = file.filename or ''
+    if filename == '':
         return jsonify({"error": "No file selected"}), 400
     
-    if not file.filename.endswith('.las'):
+    if not filename.endswith('.las'):
         return jsonify({"error": "File must be a .las file"}), 400
     
     temp_folder = os.path.join(PROJECT_PATH, '02-INPUT_LAS_FOLDER')
     os.makedirs(temp_folder, exist_ok=True)
     
-    las_path = os.path.join(temp_folder, file.filename)
+    las_path = os.path.join(temp_folder, filename)
     file.save(las_path)
     
     try:
@@ -256,6 +258,7 @@ def upload_las():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

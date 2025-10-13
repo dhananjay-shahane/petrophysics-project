@@ -974,61 +974,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint to generate well log plot using Python
-  app.post("/api/wells/generate-plot", async (req, res) => {
-    try {
-      const { wellPath } = req.body;
-      
-      if (!wellPath) {
-        return res.status(400).json({ error: "Well path is required" });
-      }
-      
-      // Read well JSON data
-      const wellData = JSON.parse(await fs.readFile(wellPath, 'utf-8'));
-      
-      // Create temporary directory for plots if it doesn't exist
-      const plotsDir = path.join(process.cwd(), 'public', 'well-plots');
-      await fs.mkdir(plotsDir, { recursive: true });
-      
-      // Generate unique filename for the plot
-      const plotFilename = `well-plot-${Date.now()}.png`;
-      const plotPath = path.join(plotsDir, plotFilename);
-      
-      // Call Python script to generate plot
-      const { execFile } = await import('child_process');
-      const { promisify } = await import('util');
-      const execFileAsync = promisify(execFile);
-      
-      const pythonScript = path.join(process.cwd(), 'server', 'python', 'generate_well_log_plot.py');
-      
-      try {
-        const { stdout, stderr } = await execFileAsync('python3', [
-          pythonScript,
-          wellPath,
-          plotPath
-        ]);
-        
-        const result = JSON.parse(stdout);
-        
-        if (result.success) {
-          res.json({
-            success: true,
-            plotUrl: `/well-plots/${plotFilename}`,
-            tracks: result.tracks,
-            curves: result.curves
-          });
-        } else {
-          res.status(500).json({ error: result.error || "Failed to generate plot" });
-        }
-      } catch (error: any) {
-        console.error("Python script error:", error);
-        res.status(500).json({ error: "Failed to execute Python script: " + error.message });
-      }
-    } catch (error: any) {
-      console.error("Error generating well log plot:", error);
-      res.status(500).json({ error: "Failed to generate well log plot: " + error.message });
-    }
-  });
 
   app.get("/api/data/list", async (req, res) => {
     try {
@@ -1144,7 +1089,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Well Management Endpoints using Python Flask backend
+  app.post("/api/wells/upload-las", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const inputLasFolder = path.join(process.cwd(), 'petrophysics-workplace', '02-INPUT_LAS_FOLDER');
+      await fs.mkdir(inputLasFolder, { recursive: true });
+
+      const lasFilePath = path.join(inputLasFolder, req.file.originalname);
+      await fs.writeFile(lasFilePath, req.file.buffer);
+
+      // Call Python script to process LAS file
+      const pythonScript = path.join(process.cwd(), 'server', 'python', 'process_las_file.py');
+      const projectPath = path.join(process.cwd(), 'petrophysics-workplace');
+
+      const { stdout } = await execPromise(
+        `uv run python ${pythonScript} "${lasFilePath}" "${projectPath}"`
+      );
+
+      const result = JSON.parse(stdout);
+
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error: any) {
+      console.error("Error uploading LAS file:", error);
+      res.status(500).json({ error: "Failed to process LAS file: " + error.message });
+    }
+  });
+
+  app.get("/api/wells/list", async (req, res) => {
+    try {
+      const wellsFolder = path.join(process.cwd(), 'petrophysics-workplace', '10-WELLS');
+      await fs.mkdir(wellsFolder, { recursive: true });
+
+      const files = await fs.readdir(wellsFolder);
+      const wells = [];
+
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(wellsFolder, file);
+          const content = await fs.readFile(filePath, 'utf-8');
+          const well = JSON.parse(content);
+          wells.push(well);
+        }
+      }
+
+      res.json({ wells });
+    } catch (error: any) {
+      console.error("Error listing wells:", error);
+      res.status(500).json({ error: "Failed to list wells: " + error.message });
+    }
+  });
+
+  app.get("/api/wells/:wellName", async (req, res) => {
+    try {
+      const { wellName } = req.params;
+      const wellsFolder = path.join(process.cwd(), 'petrophysics-workplace', '10-WELLS');
+      const wellPath = path.join(wellsFolder, `${wellName}.json`);
+
+      const content = await fs.readFile(wellPath, 'utf-8');
+      const well = JSON.parse(content);
+
+      res.json(well);
+    } catch (error: any) {
+      console.error("Error getting well:", error);
+      res.status(404).json({ error: "Well not found" });
+    }
+  });
+
+  // Well Log Plot Data Endpoint
+  app.get("/api/wells/:wellName/log-plot", async (req, res) => {
+    try {
+      const { wellName } = req.params;
+      const wellsFolder = path.join(process.cwd(), 'petrophysics-workplace', '10-WELLS');
+      const wellPath = path.join(wellsFolder, `${wellName}.json`);
+
+      const content = await fs.readFile(wellPath, 'utf-8');
+      const well = JSON.parse(content);
+
+      // Find the main dataset (not REFERENCE or WELL_HEADER)
+      const mainDataset = well.datasets?.find((ds: any) => 
+        ds.type !== 'REFERENCE' && ds.type !== 'WELL_HEADER'
+      );
+
+      if (!mainDataset) {
+        return res.status(404).json({ error: "No log data found in well" });
+      }
+
+      const tracks = mainDataset.well_logs.map((log: any) => ({
+        name: log.name,
+        unit: log.unit,
+        description: log.description,
+        data: log.log,
+        indexLog: mainDataset.index_log,
+        indexName: mainDataset.index_name || 'DEPT'
+      }));
+
+      res.json({
+        wellName: well.well_name,
+        tracks,
+        metadata: mainDataset.metadata
+      });
+    } catch (error: any) {
+      console.error("Error generating log plot data:", error);
+      res.status(500).json({ error: "Failed to generate log plot data: " + error.message });
+    }
+  });
+
+  // Cross Plot Data Endpoint
+  app.post("/api/wells/:wellName/cross-plot", async (req, res) => {
+    try {
+      const { wellName } = req.params;
+      const { xCurve, yCurve, colorCurve } = req.body;
+
+      if (!xCurve || !yCurve) {
+        return res.status(400).json({ error: "xCurve and yCurve are required" });
+      }
+
+      const wellsFolder = path.join(process.cwd(), 'petrophysics-workplace', '10-WELLS');
+      const wellPath = path.join(wellsFolder, `${wellName}.json`);
+
+      const content = await fs.readFile(wellPath, 'utf-8');
+      const well = JSON.parse(content);
+
+      // Find the main dataset
+      const mainDataset = well.datasets?.find((ds: any) => 
+        ds.type !== 'REFERENCE' && ds.type !== 'WELL_HEADER'
+      );
+
+      if (!mainDataset) {
+        return res.status(404).json({ error: "No log data found in well" });
+      }
+
+      // Find the requested curves
+      const xLog = mainDataset.well_logs.find((log: any) => log.name === xCurve);
+      const yLog = mainDataset.well_logs.find((log: any) => log.name === yCurve);
+      const colorLog = colorCurve ? mainDataset.well_logs.find((log: any) => log.name === colorCurve) : null;
+
+      if (!xLog || !yLog) {
+        return res.status(404).json({ error: "Requested curves not found" });
+      }
+
+      // Combine data, filtering out null values
+      const plotData = [];
+      for (let i = 0; i < xLog.log.length; i++) {
+        if (xLog.log[i] !== null && yLog.log[i] !== null) {
+          const point: any = {
+            x: xLog.log[i],
+            y: yLog.log[i],
+            depth: mainDataset.index_log[i]
+          };
+          if (colorLog && colorLog.log[i] !== null) {
+            point.color = colorLog.log[i];
+          }
+          plotData.push(point);
+        }
+      }
+
+      // Calculate correlation
+      const xValues = plotData.map(p => p.x);
+      const yValues = plotData.map(p => p.y);
+      const correlation = calculateCorrelation(xValues, yValues);
+
+      res.json({
+        wellName: well.well_name,
+        xCurve,
+        yCurve,
+        colorCurve,
+        data: plotData,
+        statistics: {
+          numPoints: plotData.length,
+          correlation,
+          xRange: [Math.min(...xValues), Math.max(...xValues)],
+          yRange: [Math.min(...yValues), Math.max(...yValues)]
+        }
+      });
+    } catch (error: any) {
+      console.error("Error generating cross plot data:", error);
+      res.status(500).json({ error: "Failed to generate cross plot data: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
+}
+
+// Helper function to calculate correlation coefficient
+function calculateCorrelation(x: number[], y: number[]): number {
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+  const sumX2 = x.reduce((a, b) => a + b * b, 0);
+  const sumY2 = y.reduce((a, b) => a + b * b, 0);
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  return denominator === 0 ? 0 : numerator / denominator;
 }
