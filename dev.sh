@@ -10,7 +10,7 @@ sleep 2
 # Start Flask server on port 5000
 export VITE_URL=http://localhost:5173
 export PORT=5000
-uv run python app.py
+uv run python flask/app.py
 
 # Cleanup on exit
 kill $VITE_PID 2>/dev/null
