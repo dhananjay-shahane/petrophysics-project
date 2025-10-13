@@ -24,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, File, ArrowUp, FolderPlus, Pencil, Trash2, List, Grid3x3, FileText } from "lucide-react";
+import { Folder, FolderOpen, File, ArrowUp, FolderPlus, Pencil, Trash2, List, Grid3x3, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DataExplorerProps {
@@ -36,6 +36,7 @@ interface FileItem {
   name: string;
   path: string;
   type: "file" | "directory";
+  hasFiles?: boolean;
 }
 
 interface DataResponse {
@@ -379,8 +380,17 @@ export default function DataExplorer({
                         onClick={() => handleSelectItem(item)}
                       >
                         {item.type === "directory" ? (
-                          <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                            <Folder className="w-10 h-10 text-blue-500" />
+                          <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center relative">
+                            {item.hasFiles ? (
+                              <FolderOpen className="w-10 h-10 text-blue-500" />
+                            ) : (
+                              <Folder className="w-10 h-10 text-blue-400" />
+                            )}
+                            {item.hasFiles && (
+                              <div className="absolute bottom-1 right-1 bg-white dark:bg-slate-900 rounded-full p-0.5">
+                                <FileText className="w-3 h-3 text-blue-600" />
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -418,7 +428,18 @@ export default function DataExplorer({
                         onClick={() => handleSelectItem(item)}
                       >
                         {item.type === "directory" ? (
-                          <Folder className="w-5 h-5 text-blue-500" />
+                          <div className="relative">
+                            {item.hasFiles ? (
+                              <FolderOpen className="w-5 h-5 text-blue-500" />
+                            ) : (
+                              <Folder className="w-5 h-5 text-blue-400" />
+                            )}
+                            {item.hasFiles && (
+                              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-900 rounded-full p-0.5">
+                                <FileText className="w-2 h-2 text-blue-600" />
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <File className="w-5 h-5 text-gray-500" />
                         )}

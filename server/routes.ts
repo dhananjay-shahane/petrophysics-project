@@ -1066,17 +1066,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const items = await fs.readdir(resolvedPath, { withFileTypes: true });
       
-      const fileItems = items
+      const fileItems = await Promise.all(items
         .filter(item => !item.name.startsWith('.'))
-        .map(item => ({
-          name: item.name,
-          path: path.join(resolvedPath, item.name),
-          type: item.isDirectory() ? 'directory' as const : 'file' as const,
-        }))
-        .sort((a, b) => {
-          if (a.type === b.type) return a.name.localeCompare(b.name);
-          return a.type === 'directory' ? -1 : 1;
-        });
+        .map(async item => {
+          const itemPath = path.join(resolvedPath, item.name);
+          let hasFiles = false;
+          
+          if (item.isDirectory()) {
+            try {
+              const dirContents = await fs.readdir(itemPath, { withFileTypes: true });
+              hasFiles = dirContents.some(subItem => !subItem.name.startsWith('.'));
+            } catch {
+              hasFiles = false;
+            }
+          }
+          
+          return {
+            name: item.name,
+            path: itemPath,
+            type: item.isDirectory() ? 'directory' as const : 'file' as const,
+            hasFiles: item.isDirectory() ? hasFiles : undefined,
+          };
+        }));
+      
+      fileItems.sort((a, b) => {
+        if (a.type === b.type) return a.name.localeCompare(b.name);
+        return a.type === 'directory' ? -1 : 1;
+      });
 
       const canGoUp = resolvedPath !== workspaceRoot;
 
