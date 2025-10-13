@@ -3,11 +3,12 @@ import lasio
 import shutil
 from typing import Dict, Any, Optional
 from pathlib import Path
-from .well_models import Well, Dataset, WellLog, Constant
+from datetime import datetime
+from .fe_data_objects import Well, Dataset, Constant
 
 
 class LASProcessor:
-    """Process LAS files and convert them to Well objects"""
+    """Process LAS files and convert them to Well objects using reference implementation"""
     
     @staticmethod
     def parse_las_file(las_file_path: str) -> Dict[str, Any]:
@@ -17,21 +18,20 @@ class LASProcessor:
             
             well_info = {
                 "wellName": las.well.WELL.value if hasattr(las.well, 'WELL') else "UNKNOWN",
-                "uwi": las.well.UWI.value if hasattr(las.well, 'UWI') else "",
-                "company": las.well.COMP.value if hasattr(las.well, 'COMP') else "",
-                "field": las.well.FLD.value if hasattr(las.well, 'FLD') else "",
-                "location": las.well.LOC.value if hasattr(las.well, 'LOC') else "",
-                "province": las.well.PROV.value if hasattr(las.well, 'PROV') else "",
-                "county": las.well.CNTY.value if hasattr(las.well, 'CNTY') else "",
-                "state": las.well.STAT.value if hasattr(las.well, 'STAT') else "",
-                "country": las.well.CTRY.value if hasattr(las.well, 'CTRY') else "",
-                "startDepth": float(las.well.STRT.value) if hasattr(las.well, 'STRT') else None,
-                "stopDepth": float(las.well.STOP.value) if hasattr(las.well, 'STOP') else None,
-                "step": float(las.well.STEP.value) if hasattr(las.well, 'STEP') else None,
-                "null": float(las.well.NULL.value) if hasattr(las.well, 'NULL') else -999.25,
+                "uwi": las.well.UWI.value if hasattr(las.well, 'UWI') and las.well.UWI else "",
+                "company": las.well.COMP.value if hasattr(las.well, 'COMP') and las.well.COMP else "",
+                "field": las.well.FLD.value if hasattr(las.well, 'FLD') and las.well.FLD else "",
+                "location": las.well.LOC.value if hasattr(las.well, 'LOC') and las.well.LOC else "",
+                "province": las.well.PROV.value if hasattr(las.well, 'PROV') and las.well.PROV else "",
+                "county": las.well.CNTY.value if hasattr(las.well, 'CNTY') and las.well.CNTY else "",
+                "state": las.well.STAT.value if hasattr(las.well, 'STAT') and las.well.STAT else "",
+                "country": las.well.CTRY.value if hasattr(las.well, 'CTRY') and las.well.CTRY else "",
+                "startDepth": float(las.well.STRT.value) if hasattr(las.well, 'STRT') and las.well.STRT else None,
+                "stopDepth": float(las.well.STOP.value) if hasattr(las.well, 'STOP') and las.well.STOP else None,
+                "step": float(las.well.STEP.value) if hasattr(las.well, 'STEP') and las.well.STEP else None,
+                "null": float(las.well.NULL.value) if hasattr(las.well, 'NULL') and las.well.NULL else -999.25,
                 "curveNames": [curve.mnemonic for curve in las.curves],
-                "dataPoints": len(las.data) if las.data is not None else 0,
-                "lasObject": las
+                "dataPoints": len(las.data) if las.data is not None else 0
             }
             
             return well_info
@@ -40,49 +40,50 @@ class LASProcessor:
     
     @staticmethod
     def las_to_well(las_file_path: str, well_name: Optional[str] = None) -> Well:
-        """Convert a LAS file to a Well object"""
+        """Convert a LAS file to a Well object using reference implementation"""
         try:
             las = lasio.read(las_file_path)
             
             if not well_name:
-                well_name = las.well.WELL.value if hasattr(las.well, 'WELL') else Path(las_file_path).stem
+                well_name = las.well.WELL.value if hasattr(las.well, 'WELL') and las.well.WELL else Path(las_file_path).stem
             
-            uwi = las.well.UWI.value if hasattr(las.well, 'UWI') else ""
+            dataset_name = las.params.SET.value if hasattr(las.params, 'SET') and las.params.SET else "LAS_DATA"
+            bottom = float(las.well.STOP.value) if hasattr(las.well, 'STOP') and las.well.STOP else 0.0
             
-            well = Well(name=well_name, uwi=uwi)
+            dataset = Dataset.from_las(
+                las_file_path, 
+                dataset_name=dataset_name,
+                dataset_type='Cont',
+                well_name=well_name
+            )
             
-            for item in las.well:
-                if item.mnemonic not in ['WELL', 'UWI']:
-                    constant = Constant(
-                        mnemonic=item.mnemonic,
-                        value=item.value,
-                        unit=item.unit if hasattr(item, 'unit') else "",
-                        description=item.descr if hasattr(item, 'descr') else ""
-                    )
-                    well.add_constant(constant)
+            well = Well(
+                date_created=datetime.now(),
+                well_name=well_name,
+                well_type='Dev',
+                datasets=[]
+            )
             
-            dataset = Dataset(name="LAS_DATA", index_log="DEPT")
+            ref_dataset = Dataset.reference(
+                top=0,
+                bottom=bottom,
+                dataset_name='REFERENCE',
+                dataset_type='REFERENCE',
+                well_name=well_name
+            )
             
-            for curve in las.curves:
-                curve_data = las.data[curve.mnemonic].tolist()
-                
-                well_log = WellLog(
-                    mnemonic=curve.mnemonic,
-                    unit=curve.unit if hasattr(curve, 'unit') else "",
-                    description=curve.descr if hasattr(curve, 'descr') else "",
-                    data=curve_data
-                )
-                dataset.add_log(well_log)
+            wh_dataset = Dataset.well_header(
+                dataset_name='WELL_HEADER',
+                dataset_type='WELL_HEADER',
+                well_name=well_name
+            )
             
-            well.add_dataset(dataset)
+            const = Constant('WELL_NAME', well_name, 'WELL_NAME')
+            wh_dataset.constants.append(const)
             
-            well.metadata.update({
-                "source": "LAS",
-                "las_file": Path(las_file_path).name,
-                "company": las.well.COMP.value if hasattr(las.well, 'COMP') else "",
-                "field": las.well.FLD.value if hasattr(las.well, 'FLD') else "",
-                "location": las.well.LOC.value if hasattr(las.well, 'LOC') else "",
-            })
+            well.datasets.append(ref_dataset)
+            well.datasets.append(wh_dataset)
+            well.datasets.append(dataset)
             
             return well
             
@@ -100,12 +101,12 @@ class LASProcessor:
             wells_folder = os.path.join(project_path, "10-WELLS")
             Path(wells_folder).mkdir(parents=True, exist_ok=True)
             
-            well_file_path = os.path.join(wells_folder, f"{well.name}.ptrc")
-            well.save(well_file_path)
+            well_file_path = os.path.join(wells_folder, f"{well.well_name}.ptrc")
+            well.serialize(well_file_path)
             
             result = {
                 "well_path": well_file_path,
-                "well_name": well.name
+                "well_name": well.well_name
             }
             
             if las_source_file and os.path.exists(las_source_file):
@@ -133,7 +134,6 @@ class LASProcessor:
             
             try:
                 preview_info = LASProcessor.parse_las_file(tmp_path)
-                del preview_info['lasObject']
                 return preview_info
             finally:
                 if os.path.exists(tmp_path):

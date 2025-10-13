@@ -1,6 +1,7 @@
 import os
 import json
 import tempfile
+import traceback
 from pathlib import Path
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
@@ -343,11 +344,11 @@ def create_from_las():
             
             return jsonify({
                 'success': True,
-                'message': f'Well "{well.name}" created successfully',
+                'message': f'Well "{well.well_name}" created successfully',
                 'well': {
-                    'id': well.name,
-                    'name': well.name,
-                    'uwi': well.uwi
+                    'id': well.well_name,
+                    'name': well.well_name,
+                    'type': well.well_type
                 },
                 'filePath': result['well_path'],
                 'lasFilePath': result.get('las_path')
@@ -358,6 +359,7 @@ def create_from_las():
                 os.unlink(tmp_las_path)
                 
     except Exception as e:
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @api.route('/wells/list', methods=['GET'])
