@@ -6,6 +6,27 @@ A professional petrophysics data analysis application featuring a dockable windo
 
 ## Recent Changes
 
+### October 14, 2025 - Updated LAS Processing with GitHub Repository Code
+- **Replaced LAS Processing System**: Implemented new LAS file processing using code from GitHub repository
+  - Removed old files: las_processor.py, las_processor_old.py, well_models.py, old fe_data_objects.py
+  - Added new fe_data_objects.py from https://github.com/dhananjay-shahane/python-code with proper data classes:
+    - Well class with serialize/deserialize methods for .ptrc files
+    - Dataset class with from_las() static method for LAS file import
+    - WellLog, Constant, and supporting classes for well data structure
+- **Improved Well Name Extraction**:
+  - Extracts well name from LAS file WELL mnemonic with multiple fallback methods
+  - Falls back to original uploaded filename (not temp file name) when WELL mnemonic missing
+  - Prevents random temp names (tmpXXXX) from being used as well names
+- **Updated Flask Routes** (flask/routes.py):
+  - preview_las: Properly extracts and returns well name from LAS content
+  - create_from_las: Uses Dataset.from_las() to create well objects and saves as .ptrc files
+  - list_wells: Uses Well.deserialize() to load wells from .ptrc files
+  - Wells saved with format: `{well_name}.ptrc` in 10-WELLS folder
+- **Verified Functionality**:
+  - Well "KJ-05" successfully extracted from LAS file and saved
+  - .ptrc files properly formatted with JSON data structure
+  - LAS files copied to 02-INPUT_LAS_FOLDER for reference
+
 ### October 14, 2025 - GitHub Import Setup for Replit Environment
 - **Environment Setup**: Successfully configured the project to run in Replit
   - Installed all Node.js dependencies via npm

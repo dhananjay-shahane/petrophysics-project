@@ -323,6 +323,7 @@ def preview_las():
     try:
         data = request.get_json()
         las_content = data.get('lasContent')
+        filename = data.get('filename', 'UNKNOWN')  # Get original filename if provided
         
         if not las_content:
             return jsonify({'error': 'LAS content is required'}), 400
@@ -335,18 +336,48 @@ def preview_las():
         try:
             las = lasio.read(tmp_path)
             
-            well_name = las.well.WELL.value if hasattr(las.well, 'WELL') and las.well.WELL else "UNKNOWN"
-            uwi = las.well.UWI.value if hasattr(las.well, 'UWI') and las.well.UWI else ""
+            # Extract well name - try multiple approaches
+            well_name = None
+            
+            # Try WELL mnemonic first
+            try:
+                if hasattr(las.well, 'WELL'):
+                    well_obj = las.well.WELL
+                    if well_obj and well_obj.value:
+                        well_name = str(well_obj.value).strip()
+            except:
+                pass
+            
+            # If not found, try accessing by iteration
+            if not well_name:
+                for item in las.well:
+                    if item.mnemonic.upper() == 'WELL' and item.value:
+                        well_name = str(item.value).strip()
+                        break
+            
+            # If still not found, use original filename without extension
+            if not well_name:
+                well_name = Path(filename).stem if filename != 'UNKNOWN' else 'UNKNOWN'
+            
+            # Extract UWI
+            uwi = ""
+            try:
+                if hasattr(las.well, 'UWI'):
+                    uwi_obj = las.well.UWI
+                    if uwi_obj and uwi_obj.value:
+                        uwi = str(uwi_obj.value).strip()
+            except:
+                pass
             
             preview_info = {
                 "wellName": well_name,
                 "uwi": uwi,
-                "company": las.well.COMP.value if hasattr(las.well, 'COMP') and las.well.COMP else "",
-                "field": las.well.FLD.value if hasattr(las.well, 'FLD') and las.well.FLD else "",
-                "location": las.well.LOC.value if hasattr(las.well, 'LOC') and las.well.LOC else "",
-                "startDepth": float(las.well.STRT.value) if hasattr(las.well, 'STRT') and las.well.STRT else None,
-                "stopDepth": float(las.well.STOP.value) if hasattr(las.well, 'STOP') and las.well.STOP else None,
-                "step": float(las.well.STEP.value) if hasattr(las.well, 'STEP') and las.well.STEP else None,
+                "company": str(las.well.COMP.value).strip() if hasattr(las.well, 'COMP') and las.well.COMP and las.well.COMP.value else "",
+                "field": str(las.well.FLD.value).strip() if hasattr(las.well, 'FLD') and las.well.FLD and las.well.FLD.value else "",
+                "location": str(las.well.LOC.value).strip() if hasattr(las.well, 'LOC') and las.well.LOC and las.well.LOC.value else "",
+                "startDepth": float(las.well.STRT.value) if hasattr(las.well, 'STRT') and las.well.STRT and las.well.STRT.value is not None else None,
+                "stopDepth": float(las.well.STOP.value) if hasattr(las.well, 'STOP') and las.well.STOP and las.well.STOP.value is not None else None,
+                "step": float(las.well.STEP.value) if hasattr(las.well, 'STEP') and las.well.STEP and las.well.STEP.value is not None else None,
                 "curveNames": [curve.mnemonic for curve in las.curves],
                 "dataPoints": len(las.data) if las.data is not None else 0
             }
@@ -405,7 +436,31 @@ def create_from_las():
             
             # Read LAS file to get well information
             las = lasio.read(tmp_las_path)
-            well_name = las.well.WELL.value if hasattr(las.well, 'WELL') and las.well.WELL else Path(tmp_las_path).stem
+            
+            # Extract well name - try multiple approaches
+            well_name = None
+            
+            # Try WELL mnemonic first
+            try:
+                if hasattr(las.well, 'WELL'):
+                    well_obj = las.well.WELL
+                    if well_obj and well_obj.value:
+                        well_name = str(well_obj.value).strip()
+            except:
+                pass
+            
+            # If not found, try accessing by iteration
+            if not well_name:
+                for item in las.well:
+                    if item.mnemonic.upper() == 'WELL' and item.value:
+                        well_name = str(item.value).strip()
+                        break
+            
+            # If still not found, use original filename without extension
+            if not well_name:
+                well_name = Path(filename).stem
+            
+            logs.append({'message': f'Extracted well name: {well_name}', 'type': 'info'})
             
             # Create dataset from LAS file using Dataset.from_las
             dataset = Dataset.from_las(
