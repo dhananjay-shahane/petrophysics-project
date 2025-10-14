@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 
 interface Dataset {
   name: string;
@@ -18,52 +17,13 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
   const [availableLogs, setAvailableLogs] = useState<Dataset[]>([]);
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!selectedWell) {
-      setPlotImage(null);
-      setError(null);
-      setAvailableLogs([]);
-      setSelectedLogs([]);
-      return;
-    }
-
-    const fetchAvailableLogs = async () => {
-      try {
-        const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
-        const path = projectPath || selectedWell.projectPath || '';
-        
-        const response = await fetch(`/api/wells/datasets?projectPath=${encodeURIComponent(path)}&wellName=${encodeURIComponent(wellId)}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch datasets');
-        }
-        
-        const data = await response.json();
-        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
-        setAvailableLogs(logs);
-        
-        // Auto-select first 3 logs
-        if (logs.length > 0) {
-          setSelectedLogs(logs.slice(0, 3).map((l: Dataset) => l.name));
-        }
-      } catch (err: any) {
-        console.error('Error fetching datasets:', err);
-      }
-    };
-
-    fetchAvailableLogs();
-  }, [selectedWell, projectPath]);
-
-  const generatePlot = async () => {
-    if (!selectedWell || selectedLogs.length === 0) return;
+  const generatePlot = async (wellId: string, path: string, logNames: string[]) => {
+    if (logNames.length === 0) return;
 
     setIsLoading(true);
     setError(null);
     
     try {
-      const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
-      const path = projectPath || selectedWell.projectPath || '';
-      
       const response = await fetch(`/api/wells/${encodeURIComponent(wellId)}/log-plot`, {
         method: 'POST',
         headers: {
@@ -71,7 +31,7 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
         },
         body: JSON.stringify({
           projectPath: path,
-          logNames: selectedLogs
+          logNames: logNames
         })
       });
       
@@ -91,12 +51,72 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
     }
   };
 
+  useEffect(() => {
+    console.log('[WellLogPlot] useEffect triggered', { selectedWell, projectPath });
+    
+    if (!selectedWell) {
+      setPlotImage(null);
+      setError(null);
+      setAvailableLogs([]);
+      setSelectedLogs([]);
+      return;
+    }
+
+    const fetchAvailableLogs = async () => {
+      try {
+        const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
+        const path = projectPath || selectedWell.projectPath || '';
+        
+        console.log('[WellLogPlot] Fetching datasets for well:', wellId, 'path:', path);
+        
+        const response = await fetch(`/api/wells/datasets?projectPath=${encodeURIComponent(path)}&wellName=${encodeURIComponent(wellId)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch datasets');
+        }
+        
+        const data = await response.json();
+        console.log('[WellLogPlot] Datasets response:', data);
+        
+        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
+        console.log('[WellLogPlot] Continuous logs found:', logs.length, logs);
+        setAvailableLogs(logs);
+        
+        // Auto-select first 3 logs and auto-generate plot
+        if (logs.length > 0) {
+          const logsToPlot = logs.slice(0, 3).map((l: Dataset) => l.name);
+          setSelectedLogs(logsToPlot);
+          
+          console.log('[WellLogPlot] Auto-generating plot for logs:', logsToPlot);
+          // Auto-generate plot
+          generatePlot(wellId, path, logsToPlot);
+        } else {
+          console.log('[WellLogPlot] No continuous logs found, skipping plot generation');
+        }
+      } catch (err: any) {
+        console.error('[WellLogPlot] Error fetching datasets:', err);
+        setError(err.message || 'Failed to fetch datasets');
+      }
+    };
+
+    fetchAvailableLogs();
+  }, [selectedWell, projectPath]);
+
   const toggleLog = (logName: string) => {
-    setSelectedLogs(prev => 
-      prev.includes(logName) 
-        ? prev.filter(l => l !== logName)
-        : [...prev, logName]
-    );
+    const newSelectedLogs = selectedLogs.includes(logName) 
+      ? selectedLogs.filter(l => l !== logName)
+      : [...selectedLogs, logName];
+    
+    setSelectedLogs(newSelectedLogs);
+    
+    // Auto-regenerate plot when logs change
+    if (selectedWell && newSelectedLogs.length > 0) {
+      const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
+      const path = projectPath || selectedWell.projectPath || '';
+      generatePlot(wellId, path, newSelectedLogs);
+    } else {
+      setPlotImage(null);
+    }
   };
 
   if (!selectedWell) {
@@ -116,13 +136,6 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
       <div className="border-b p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Well: {selectedWell.well_name || selectedWell.name}</h3>
-          <Button 
-            onClick={generatePlot} 
-            disabled={isLoading || selectedLogs.length === 0}
-            size="sm"
-          >
-            {isLoading ? 'Generating...' : 'Generate Plot'}
-          </Button>
         </div>
         
         {/* Log Selection */}
@@ -165,9 +178,9 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
           </div>
         )}
 
-        {!isLoading && !error && !plotImage && (
+        {!isLoading && !error && !plotImage && selectedLogs.length === 0 && (
           <div className="w-full h-full flex items-center justify-center">
-            <p className="text-muted-foreground">Select logs and click "Generate Plot" to view</p>
+            <p className="text-muted-foreground">Select at least one log to view the plot</p>
           </div>
         )}
 

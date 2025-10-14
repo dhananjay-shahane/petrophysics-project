@@ -1,9 +1,15 @@
+import { useEffect, useState } from "react";
 import DockablePanel from "./DockablePanel";
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { WellData } from "./AdvancedDockWorkspace";
+
+interface Dataset {
+  name: string;
+  type: string;
+}
 
 export default function CrossPlotPanel({ 
   selectedWell,
+  projectPath,
   onClose,
   onMinimize,
   isFloating,
@@ -14,6 +20,7 @@ export default function CrossPlotPanel({
   onGeometryChange
 }: { 
   selectedWell?: WellData | null;
+  projectPath?: string;
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -23,29 +30,111 @@ export default function CrossPlotPanel({
   savedSize?: { width: number; height: number };
   onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
-  // Prepare cross plot data from selected well
-  let plotData: any[] = [];
-  let xAxisLabel = "X Axis";
-  let yAxisLabel = "Y Axis";
-  
-  if (selectedWell?.data && Array.isArray(selectedWell.data) && selectedWell.data.length > 0) {
-    const logs = selectedWell.logs || [];
-    // Use first two available numeric curves (excluding depth)
-    const numericCurves = logs.filter((c: string) => c !== 'DEPT' && c !== 'DEPTH');
+  const [plotImage, setPlotImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [availableLogs, setAvailableLogs] = useState<Dataset[]>([]);
+  const [xLog, setXLog] = useState<string>('');
+  const [yLog, setYLog] = useState<string>('');
+
+  const generateCrossPlot = async (wellId: string, path: string, xLogName: string, yLogName: string) => {
+    if (!xLogName || !yLogName) return;
+
+    setIsLoading(true);
+    setError(null);
     
-    if (numericCurves.length >= 2) {
-      const xCurve = numericCurves[0];
-      const yCurve = numericCurves[1];
-      xAxisLabel = xCurve;
-      yAxisLabel = yCurve;
+    try {
+      const response = await fetch(`/api/wells/${encodeURIComponent(wellId)}/cross-plot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectPath: path,
+          xLog: xLogName,
+          yLog: yLogName
+        })
+      });
       
-      plotData = selectedWell.data.map((point: any, index: number) => ({
-        x: point[xCurve],
-        y: point[yCurve],
-        name: `Point ${index + 1}`
-      })).filter((p: any) => isFinite(p.x) && isFinite(p.y));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate cross plot');
+      }
+      
+      const data = await response.json();
+      setPlotImage(data.image);
+      
+    } catch (err: any) {
+      console.error('Error generating cross plot:', err);
+      setError(err.message || 'Failed to generate cross plot');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (!selectedWell) {
+      setPlotImage(null);
+      setError(null);
+      setAvailableLogs([]);
+      setXLog('');
+      setYLog('');
+      return;
+    }
+
+    const fetchAvailableLogs = async () => {
+      try {
+        const wellId = selectedWell.id || selectedWell.name;
+        const path = projectPath || '';
+        
+        const response = await fetch(`/api/wells/datasets?projectPath=${encodeURIComponent(path)}&wellName=${encodeURIComponent(wellId)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch datasets');
+        }
+        
+        const data = await response.json();
+        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
+        setAvailableLogs(logs);
+        
+        // Auto-select first two logs for cross plot
+        if (logs.length >= 2) {
+          const xLogName = logs[0].name;
+          const yLogName = logs[1].name;
+          setXLog(xLogName);
+          setYLog(yLogName);
+          
+          // Auto-generate cross plot
+          generateCrossPlot(wellId, path, xLogName, yLogName);
+        } else if (logs.length === 1) {
+          setXLog(logs[0].name);
+        }
+      } catch (err: any) {
+        console.error('Error fetching datasets:', err);
+        setError(err.message || 'Failed to fetch datasets');
+      }
+    };
+
+    fetchAvailableLogs();
+  }, [selectedWell, projectPath]);
+
+  const handleLogChange = (axis: 'x' | 'y', logName: string) => {
+    if (axis === 'x') {
+      setXLog(logName);
+      if (logName && yLog && selectedWell) {
+        const wellId = selectedWell.id || selectedWell.name;
+        const path = projectPath || '';
+        generateCrossPlot(wellId, path, logName, yLog);
+      }
+    } else {
+      setYLog(logName);
+      if (xLog && logName && selectedWell) {
+        const wellId = selectedWell.id || selectedWell.name;
+        const path = projectPath || '';
+        generateCrossPlot(wellId, path, xLog, logName);
+      }
+    }
+  };
 
   return (
     <DockablePanel 
@@ -61,43 +150,87 @@ export default function CrossPlotPanel({
       onGeometryChange={onGeometryChange}
       defaultSize={{ width: 800, height: 600 }}
     >
-      <div className="h-full flex flex-col bg-background p-4">
-        {!selectedWell ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <p className="text-lg">No well selected</p>
-              <p className="text-sm mt-2">Select a well from the Wells panel to display cross plot</p>
-            </div>
+      <div className="w-full h-full flex flex-col bg-background">
+        {/* Control Panel */}
+        <div className="border-b p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">
+              {selectedWell ? `Well: ${selectedWell.name}` : 'No well selected'}
+            </h3>
           </div>
-        ) : plotData.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <p className="text-lg">Loading well data...</p>
-              <p className="text-sm mt-2">{selectedWell.name}</p>
+          
+          {/* Axis Selection */}
+          {availableLogs.length > 0 && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">X-Axis Log:</label>
+                <select
+                  value={xLog}
+                  onChange={(e) => handleLogChange('x', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                >
+                  <option value="">Select log...</option>
+                  {availableLogs.map((log) => (
+                    <option key={log.name} value={log.name}>
+                      {log.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Y-Axis Log:</label>
+                <select
+                  value={yLog}
+                  onChange={(e) => handleLogChange('y', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                >
+                  <option value="">Select log...</option>
+                  {availableLogs.map((log) => (
+                    <option key={log.name} value={log.name}>
+                      {log.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                type="number" 
-                dataKey="x" 
-                name={xAxisLabel}
-                label={{ value: xAxisLabel, position: 'bottom', offset: 0 }}
+          )}
+        </div>
+
+        {/* Plot Display Area */}
+        <div className="flex-1 overflow-auto p-4">
+          {!selectedWell ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <p className="text-lg font-medium">No well selected</p>
+                <p className="text-sm mt-2">Select a well from the Wells panel to display cross plot</p>
+              </div>
+            </div>
+          ) : isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <p className="text-muted-foreground">Generating cross plot...</p>
+            </div>
+          ) : error ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center text-destructive">
+                <p className="text-lg font-medium">Error</p>
+                <p className="text-sm mt-2">{error}</p>
+              </div>
+            </div>
+          ) : !xLog || !yLog ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <p className="text-muted-foreground">Select X and Y axis logs to view the cross plot</p>
+            </div>
+          ) : plotImage ? (
+            <div className="flex justify-center">
+              <img 
+                src={`data:image/png;base64,${plotImage}`} 
+                alt="Cross Plot"
+                className="max-w-full h-auto"
               />
-              <YAxis 
-                type="number" 
-                dataKey="y" 
-                name={yAxisLabel}
-                label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Legend />
-              <Scatter name={selectedWell.name} data={plotData} fill="#0ea5e9" />
-            </ScatterChart>
-          </ResponsiveContainer>
-        )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </DockablePanel>
   );

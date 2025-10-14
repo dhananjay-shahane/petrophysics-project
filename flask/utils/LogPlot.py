@@ -26,6 +26,7 @@ class LogPlotManager:
     def create_log_plot(self, well_data, log_names, index_name='DEPTH'):
         """
         Create a well log plot with multiple tracks
+        Based on GitHub repo logplotclass.py matplotlib implementation
         
         Args:
             well_data: Well object with datasets
@@ -35,20 +36,26 @@ class LogPlotManager:
         Returns:
             Base64 encoded PNG image
         """
+        print(f"[LogPlot] Creating log plot for {len(log_names)} logs: {log_names}")
+        
         if not log_names:
+            print("[LogPlot] No log names provided")
             return None
         
         # Number of tracks (one per log)
         num_tracks = len(log_names)
         
         # Create figure with horizontal layout (tracks side by side)
+        # Similar to GitHub repo's MainFigureWidget and MatplotlibDockWidget
         fig = Figure(figsize=(4 * num_tracks, 12))
+        print(f"[LogPlot] Created figure with {num_tracks} tracks")
         
         # Collect log data
         tracks_data = []
         shared_index = None
         
         for log_name in log_names:
+            print(f"[LogPlot] Searching for log: {log_name}")
             # Search through all datasets
             for dataset in well_data.datasets:
                 # Look for the log in dataset's well_logs
@@ -62,12 +69,20 @@ class LogPlotManager:
                         })
                         if shared_index is None and dataset.index_log:
                             shared_index = dataset.index_log
+                        print(f"[LogPlot] Found {log_name} with {len(well_log.log)} points")
                         break
                 if tracks_data and tracks_data[-1]['name'] == log_name:
                     break
         
-        if not tracks_data or shared_index is None:
+        if not tracks_data:
+            print("[LogPlot] ERROR: No track data found")
             return None
+            
+        if shared_index is None:
+            print("[LogPlot] ERROR: No shared index (DEPTH) found")
+            return None
+        
+        print(f"[LogPlot] Successfully collected {len(tracks_data)} tracks")
         
         # Create subplots with shared y-axis
         axes = []
