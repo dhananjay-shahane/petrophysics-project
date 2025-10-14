@@ -718,6 +718,81 @@ def get_well_data():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@api.route('/wells/dataset-details', methods=['GET'])
+def get_dataset_details():
+    """Get specific dataset details for data browser"""
+    try:
+        well_path = request.args.get('wellPath')
+        dataset_name = request.args.get('datasetName')
+        
+        if not well_path:
+            return jsonify({'error': 'Well path is required'}), 400
+        
+        if not dataset_name:
+            return jsonify({'error': 'Dataset name is required'}), 400
+        
+        resolved_path = os.path.abspath(well_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        if not os.path.exists(resolved_path):
+            return jsonify({'error': 'Well file not found'}), 404
+        
+        # Load well using Well.deserialize
+        well = Well.deserialize(filepath=resolved_path)
+        
+        # Find the requested dataset
+        target_dataset = None
+        for dataset in well.datasets:
+            if dataset.name == dataset_name:
+                target_dataset = dataset
+                break
+        
+        if not target_dataset:
+            return jsonify({'error': f'Dataset "{dataset_name}" not found'}), 404
+        
+        # Format well logs with complete data
+        logs = []
+        for log in target_dataset.well_logs:
+            logs.append({
+                'name': log.name,
+                'date': str(log.date) if hasattr(log, 'date') else '',
+                'description': log.description if hasattr(log, 'description') else '',
+                'dtst': log.dtst if hasattr(log, 'dtst') else target_dataset.name,
+                'interpolation': log.interpolation if hasattr(log, 'interpolation') else '',
+                'log_type': log.log_type if hasattr(log, 'log_type') else '',
+                'log': log.log if hasattr(log, 'log') else []
+            })
+        
+        # Format constants
+        constants = []
+        if hasattr(target_dataset, 'constants') and target_dataset.constants:
+            for const in target_dataset.constants:
+                constants.append({
+                    'name': const.name if hasattr(const, 'name') else '',
+                    'value': const.value if hasattr(const, 'value') else '',
+                    'tag': const.tag if hasattr(const, 'tag') else ''
+                })
+        
+        dataset_details = {
+            'name': target_dataset.name,
+            'type': target_dataset.type,
+            'wellname': target_dataset.wellname,
+            'index_name': target_dataset.index_name if hasattr(target_dataset, 'index_name') else 'DEPTH',
+            'index_log': target_dataset.index_log if hasattr(target_dataset, 'index_log') else [],
+            'well_logs': logs,
+            'constants': constants
+        }
+        
+        return jsonify({
+            'success': True,
+            'dataset': dataset_details
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @api.route('/wells/list', methods=['GET'])
 def list_wells():
     """List all wells in a project"""
