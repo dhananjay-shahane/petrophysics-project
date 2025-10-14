@@ -14,8 +14,10 @@ def create_project_structure(project_name: str, parent_path: str) -> Dict:
         Dictionary with project details and created folders
     """
     
+    # Folder structure from GitHub repository: Project_Manager.py
     standard_folders = [
         "01-OUTPUT",
+        "01-OUTPUT/Reports and Presentations",
         "02-INPUT_LAS_FOLDER",
         "03-DEVIATION",
         "04-WELL_HEADER",

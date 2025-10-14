@@ -1,7 +1,9 @@
 # Dockable Window Manager Application
 
 ## Overview
-A professional petrophysics data analysis application featuring a dockable window management system inspired by modern IDEs. The application provides an interactive workspace for managing well logs, visualizing data through various plot types, and organizing geological zonation information. Built with React, TypeScript, and Flask, it offers a sophisticated drag-and-drop interface for flexible panel arrangement with floating windows, docked layouts, and persistent workspace configurations. The project aims to provide a robust, modern tool for petrophysical data analysis with a focus on user experience and data integrity.
+A professional petrophysics data analysis application featuring a dockable window management system inspired by modern IDEs. The application provides an interactive workspace for managing well logs, visualizing data through various plot types, and organizing geological zonation information. Built with React, TypeScript, and Flask, it offers a sophisticated drag-and-drop interface for flexible panel arrangement with floating windows, docked layouts, and persistent workspace configurations. 
+
+**Implementation Note**: This application uses the exact LAS file processing and project management logic from the GitHub repository (https://github.com/dhananjay-shahane/python-code), ensuring consistency with the original Python/PyQt desktop application while adapting it for a web-based environment.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -30,9 +32,28 @@ The application features a modern IDE-like interface with a dockable window mana
 - **Project Structure:** Automated creation of a standard petrophysics folder structure within projects.
 
 ### Feature Specifications
-- **LAS File Processing:** Direct upload, parsing, and conversion of LAS files into structured Well objects. Supports real-time preview and detailed logging during upload.
-- **Well Management:** Wells are saved as `.ptrc` (Petrophysics Resource Container) JSON files in a dedicated project folder (`10-WELLS`).
-- **Project Management:** Users can create new projects with a predefined folder structure for organizing petrophysical data.
+- **LAS File Processing (from GitHub repo):** 
+  - Direct upload, parsing, and conversion using `Dataset.from_las()` from fe_data_objects.py
+  - Extracts well name from LAS WELL mnemonic, dataset name from params.SET
+  - Creates REFERENCE and WELL_HEADER datasets for new wells (matching repository logic)
+  - Supports multi-dataset wells (appends to existing wells)
+  - Supports real-time preview and detailed logging during upload
+- **Well Management (from GitHub repo):**
+  - Wells saved as `.ptrc` (Petrophysics Resource Container) JSON files using Well.serialize()
+  - Loaded using Well.deserialize() (matches Load_Wells() from Data_Import_Export.py)
+  - Stored in dedicated project folder (`10-WELLS`)
+- **Project Management (from GitHub repo):**
+  - Creates projects with exact folder structure from Project_Manager.py:
+    - 01-OUTPUT (with Reports and Presentations subfolder)
+    - 02-INPUT_LAS_FOLDER
+    - 03-DEVIATION
+    - 04-WELL_HEADER
+    - 05-TOPS_FOLDER
+    - 06-ZONES_FOLDER
+    - 07-DATA_EXPORTS
+    - 08-VOL_MODELS
+    - 09-SPECS
+    - 10-WELLS
 - **Data Visualization:** Generation of various plot types (cross-plots, log plots) from well data.
 - **File Preview:** Enhanced Data Explorer allows single-click preview of file contents (JSON, text).
 - **Python Logging Panel:** A dedicated panel for real-time, color-coded logs from backend Python processes.
