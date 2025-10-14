@@ -232,20 +232,27 @@ class WellLog:
     dtst: str
 
     def __init__(self, name: str, date: str, description: str, interpolation: interpolation_type, log_type: value_type, log: List[Union[str, float]], dtst: str):
-        # Enforce that all values are either str or float, and all elements should be the same type
+        # Enforce that all values are either str or numeric (int/float)
         if not log:
+            self.name = name
+            self.date = date
+            self.description = description
+            self.log = log
+            self.log_type = log_type
+            self.interpolation = interpolation
+            self.dtst = dtst
             return
-            raise ValueError("Values list cannot be empty.")
         
-        first_type = type(log[0])
-
-        # Ensure that all elements are the same type (either all str or all float)
-        if not all(isinstance(v, first_type) for v in log):
-            raise ValueError("All elements of 'values' must be of the same type: either all str or all float.")
+        # Check if all values are numeric (int or float) OR all are strings
+        all_numeric = all(isinstance(v, (int, float)) for v in log)
+        all_strings = all(isinstance(v, str) for v in log)
         
-        # Ensure that all elements are either str or float
-        if not all(isinstance(v, (str, float)) for v in log):
-            raise ValueError("All elements of 'values' must be either str or float.")
+        if not (all_numeric or all_strings):
+            raise ValueError("All elements of 'values' must be of the same category: either all numeric (int/float) or all str.")
+        
+        # Convert all numeric values to float for consistency
+        if all_numeric:
+            log = [float(v) for v in log]
 
         # Assign the validated values to the instance
         self.name = name
