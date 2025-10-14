@@ -990,45 +990,70 @@ def get_well_datasets():
 def generate_log_plot(well_id):
     """Generate a well log plot for specified logs"""
     try:
+        print(f"[LOG PLOT] Starting log plot generation for well: {well_id}")
         data = request.get_json()
         project_path = data.get('projectPath')
-        log_names = data.get('logNames', [])  # List of log names to plot
+        log_names = data.get('logNames', [])
         
         if not project_path:
+            print("[LOG PLOT] Error: Project path is required")
             return jsonify({'error': 'Project path is required'}), 400
         
         if not log_names or len(log_names) == 0:
+            print("[LOG PLOT] Error: No log names provided")
             return jsonify({'error': 'At least one log name is required'}), 400
+        
+        print(f"[LOG PLOT] Plotting logs: {', '.join(log_names)}")
         
         # Validate path
         resolved_path = os.path.abspath(project_path)
         if not validate_path(resolved_path):
+            print("[LOG PLOT] Error: Path validation failed")
             return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
         
         # Load the well
         wells_folder = os.path.join(resolved_path, "10-WELLS")
         well_file = os.path.join(wells_folder, f"{well_id}.ptrc")
         
+        print(f"[LOG PLOT] Loading well from: {well_file}")
         if not os.path.exists(well_file):
+            print(f"[LOG PLOT] Error: Well file not found")
             return jsonify({'error': f'Well {well_id} not found'}), 404
         
         well = Well.deserialize(filepath=well_file)
+        print(f"[LOG PLOT] Well loaded successfully: {well.well_name}")
+        print(f"[LOG PLOT] Number of datasets: {len(well.datasets)}")
         
         # Generate the plot using GitHub repo classes
+        print("[LOG PLOT] Initializing LogPlotManager...")
         plot_manager = LogPlotManager()
+        
+        print("[LOG PLOT] Creating log plot with matplotlib...")
         plot_image = plot_manager.create_log_plot(well, log_names)
         
         if not plot_image:
+            print("[LOG PLOT] Error: Plot generation failed")
             return jsonify({'error': 'Failed to generate plot'}), 500
+        
+        print("[LOG PLOT] Plot generated successfully!")
+        print(f"[LOG PLOT] Image size: {len(plot_image)} characters (base64)")
         
         return jsonify({
             'success': True,
             'image': plot_image,
             'format': 'png',
-            'encoding': 'base64'
+            'encoding': 'base64',
+            'logs': [
+                f"Starting log plot generation for well: {well_id}",
+                f"Plotting logs: {', '.join(log_names)}",
+                f"Well loaded: {well.well_name}",
+                f"Number of datasets: {len(well.datasets)}",
+                "Plot generated successfully!"
+            ]
         }), 200
         
     except Exception as e:
+        print(f"[LOG PLOT] Error: {str(e)}")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
@@ -1036,43 +1061,57 @@ def generate_log_plot(well_id):
 def generate_cross_plot(well_id):
     """Generate a cross plot of two logs"""
     try:
+        print(f"[CROSS PLOT] Starting cross plot generation for well: {well_id}")
         data = request.get_json()
         project_path = data.get('projectPath')
         x_log_name = data.get('xLog')
         y_log_name = data.get('yLog')
         
         if not project_path or not x_log_name or not y_log_name:
+            print("[CROSS PLOT] Error: Missing required parameters")
             return jsonify({'error': 'Project path, x log, and y log are required'}), 400
+        
+        print(f"[CROSS PLOT] X-axis log: {x_log_name}")
+        print(f"[CROSS PLOT] Y-axis log: {y_log_name}")
         
         # Validate path
         resolved_path = os.path.abspath(project_path)
         if not validate_path(resolved_path):
+            print("[CROSS PLOT] Error: Path validation failed")
             return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
         
         # Load the well
         wells_folder = os.path.join(resolved_path, "10-WELLS")
         well_file = os.path.join(wells_folder, f"{well_id}.ptrc")
         
+        print(f"[CROSS PLOT] Loading well from: {well_file}")
         if not os.path.exists(well_file):
+            print("[CROSS PLOT] Error: Well file not found")
             return jsonify({'error': f'Well {well_id} not found'}), 404
         
         well = Well.deserialize(filepath=well_file)
+        print(f"[CROSS PLOT] Well loaded successfully: {well.well_name}")
         
         # Find the logs in well_logs
         x_log = None
         y_log = None
         
+        print("[CROSS PLOT] Searching for logs in datasets...")
         for dataset in well.datasets:
             for well_log in dataset.well_logs:
                 if well_log.name == x_log_name:
                     x_log = well_log.log
+                    print(f"[CROSS PLOT] Found X-log: {x_log_name} ({len(x_log)} points)")
                 if well_log.name == y_log_name:
                     y_log = well_log.log
+                    print(f"[CROSS PLOT] Found Y-log: {y_log_name} ({len(y_log)} points)")
         
         if x_log is None or y_log is None:
+            print("[CROSS PLOT] Error: One or both logs not found")
             return jsonify({'error': 'One or both logs not found'}), 404
         
         # Generate the cross plot using matplotlib
+        print("[CROSS PLOT] Generating cross plot with matplotlib...")
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
@@ -1086,6 +1125,8 @@ def generate_cross_plot(well_id):
         valid_points = [(x, y) for x, y in zip(x_log, y_log) 
                        if x is not None and y is not None and not math.isnan(x) and not math.isnan(y)]
         
+        print(f"[CROSS PLOT] Valid data points: {len(valid_points)}")
+        
         if valid_points:
             x_valid, y_valid = zip(*valid_points)
             ax.scatter(x_valid, y_valid, alpha=0.5, s=10, color='blue')
@@ -1095,6 +1136,7 @@ def generate_cross_plot(well_id):
                 z = np.polyfit(x_valid, y_valid, 1)
                 p = np.poly1d(z)
                 ax.plot(x_valid, p(x_valid), "r--", linewidth=1, alpha=0.8, label='Trend')
+                print(f"[CROSS PLOT] Trend line equation: y = {z[0]:.4f}x + {z[1]:.4f}")
             
             ax.set_xlabel(x_log_name, fontsize=10)
             ax.set_ylabel(y_log_name, fontsize=10)
@@ -1113,13 +1155,25 @@ def generate_cross_plot(well_id):
         plt.close(fig)
         
         if not plot_image:
+            print("[CROSS PLOT] Error: Failed to generate plot")
             return jsonify({'error': 'Failed to generate cross plot'}), 500
+        
+        print("[CROSS PLOT] Cross plot generated successfully!")
+        print(f"[CROSS PLOT] Image size: {len(plot_image)} characters (base64)")
         
         return jsonify({
             'success': True,
             'image': plot_image,
             'format': 'png',
-            'encoding': 'base64'
+            'encoding': 'base64',
+            'logs': [
+                f"Starting cross plot generation for well: {well_id}",
+                f"X-axis log: {x_log_name}",
+                f"Y-axis log: {y_log_name}",
+                f"Well loaded: {well.well_name}",
+                f"Valid data points: {len(valid_points)}",
+                "Cross plot generated successfully!"
+            ]
         }), 200
         
     except Exception as e:
