@@ -580,7 +580,7 @@ export default function AdvancedDockWorkspace() {
     const panelSpecificProps = panelId === 'wells' 
       ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
-      ? { onLoadWells: handleLoadWells, projectPath }
+      ? { onLoadWells: handleLoadWells, projectPath, selectedWell }
       : panelId === 'dataBrowser'
       ? { selectedWell }
       : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'

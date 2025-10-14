@@ -12,6 +12,15 @@ interface LogEntry {
   icon?: string;
 }
 
+interface WellData {
+  id: string;
+  name: string;
+  uwi?: string;
+  field?: string;
+  operator?: string;
+  location?: string;
+}
+
 export default function FeedbackPanelNew({ 
   onClose,
   onMinimize,
@@ -22,6 +31,7 @@ export default function FeedbackPanelNew({
   savedSize,
   onGeometryChange,
   projectPath,
+  selectedWell,
 }: { 
   onClose?: () => void;
   onMinimize?: () => void;
@@ -32,29 +42,39 @@ export default function FeedbackPanelNew({
   savedSize?: { width: number; height: number };
   onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
   projectPath?: string;
+  selectedWell?: WellData | null;
 }) {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    const savedLogs = localStorage.getItem('feedbackLogs');
+    if (savedLogs) {
+      try {
+        return JSON.parse(savedLogs);
+      } catch {
+        return [{
+          timestamp: new Date().toLocaleTimeString(),
+          message: 'Feedback console initialized',
+          type: 'info',
+          icon: '🔧'
+        }];
+      }
+    }
+    return [{
       timestamp: new Date().toLocaleTimeString(),
       message: 'Feedback console initialized',
       type: 'info',
       icon: '🔧'
-    }
-  ]);
+    }];
+  });
   const [lasFile, setLasFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      }, 0);
-    }
+    localStorage.setItem('feedbackLogs', JSON.stringify(logs));
+    scrollEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
   const addLog = (message: string, type: LogEntry['type'] = 'info', icon?: string) => {
@@ -68,12 +88,14 @@ export default function FeedbackPanelNew({
   };
 
   const clearLogs = () => {
-    setLogs([{
+    const newLogs: LogEntry[] = [{
       timestamp: new Date().toLocaleTimeString(),
       message: 'Logs cleared',
       type: 'info',
       icon: '🗑️'
-    }]);
+    }];
+    setLogs(newLogs);
+    localStorage.setItem('feedbackLogs', JSON.stringify(newLogs));
   };
 
   const getLogColor = (type: LogEntry['type']) => {
@@ -143,7 +165,8 @@ export default function FeedbackPanelNew({
         const duration = Date.now() - startTime;
         
         const urlPath = url.split('?')[0];
-        let logMessage = `${method} ${urlPath} - ${response.status} (${duration}ms)`;
+        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : '';
+        let logMessage = `${method} ${urlPath} - ${response.status} (${duration}ms)${wellInfo}`;
         let logType: LogEntry['type'] = 'info';
         let icon = '🌐';
 
@@ -152,15 +175,15 @@ export default function FeedbackPanelNew({
           logType = response.ok ? 'success' : 'error';
           icon = '📤';
         } else if (urlPath.includes('/log-plot')) {
-          logMessage = `📊 Log Plot Generation - ${response.status} (${duration}ms)`;
+          logMessage = `📊 Log Plot Generation${wellInfo} - ${response.status} (${duration}ms)`;
           logType = response.ok ? 'success' : 'error';
           icon = '📊';
         } else if (urlPath.includes('/cross-plot')) {
-          logMessage = `📈 Cross Plot Generation - ${response.status} (${duration}ms)`;
+          logMessage = `📈 Cross Plot Generation${wellInfo} - ${response.status} (${duration}ms)`;
           logType = response.ok ? 'success' : 'error';
           icon = '📈';
         } else if (urlPath.includes('/datasets')) {
-          logMessage = `🗂️ Data Loading - ${response.status} (${duration}ms)`;
+          logMessage = `🗂️ Data Loading${wellInfo} - ${response.status} (${duration}ms)`;
           logType = response.ok ? 'success' : 'error';
           icon = '🗂️';
         } else if (urlPath.includes('/api/wells')) {
@@ -178,7 +201,8 @@ export default function FeedbackPanelNew({
         return response;
       } catch (error) {
         const duration = Date.now() - startTime;
-        addLog(`❌ ${method} ${url} - Failed (${duration}ms): ${error}`, 'error', '⚠️');
+        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : '';
+        addLog(`❌ ${method} ${url}${wellInfo} - Failed (${duration}ms): ${error}`, 'error', '⚠️');
         throw error;
       }
     };
@@ -201,7 +225,7 @@ export default function FeedbackPanelNew({
       delete (window as any).addAppLog;
       delete (window as any).addPythonLog;
     };
-  }, []);
+  }, [selectedWell]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -347,9 +371,17 @@ export default function FeedbackPanelNew({
         </div>
 
         <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Terminal className="w-4 h-4" />
-            <span>System Logs</span>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4" />
+              <span>System Logs</span>
+            </div>
+            {selectedWell && (
+              <div className="flex items-center gap-2 text-xs bg-slate-800 px-2 py-1 rounded">
+                <span className="text-blue-400">🔹</span>
+                <span className="text-slate-300">{selectedWell.name}</span>
+              </div>
+            )}
           </div>
           <Button 
             size="sm" 
@@ -362,10 +394,10 @@ export default function FeedbackPanelNew({
           </Button>
         </div>
         
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden max-h-[400px]">
           <div 
             ref={scrollRef}
-            className="h-full overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
+            className="h-full max-h-[400px] overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
           >
             {logs.map((log, index) => (
               <div key={index} className="mb-1 flex gap-2">
@@ -374,6 +406,7 @@ export default function FeedbackPanelNew({
                 <span className={getLogColor(log.type)}>{log.message}</span>
               </div>
             ))}
+            <div ref={scrollEndRef} />
           </div>
         </div>
       </div>
