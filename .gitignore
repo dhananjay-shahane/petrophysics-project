@@ -6,7 +6,6 @@ vite.config.ts.*
 *.tar.gz
 .env
 attached_assets
-.replit
 local
 !replit.md
 !database
