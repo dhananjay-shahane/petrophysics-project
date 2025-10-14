@@ -494,9 +494,21 @@ def create_from_las():
             well_file_path = os.path.join(wells_folder, f'{well_name}.ptrc')
             
             if os.path.exists(well_file_path):
-                # Load existing well and append dataset
-                logs.append({'message': f'Well "{well_name}" already exists, appending dataset...', 'type': 'info'})
+                # Load existing well and check for duplicate dataset
+                logs.append({'message': f'Well "{well_name}" already exists, checking for duplicates...', 'type': 'info'})
                 well = Well.deserialize(filepath=well_file_path)
+                
+                # Check if dataset with same name already exists
+                existing_dataset_names = [dtst.name for dtst in well.datasets]
+                if dataset_name in existing_dataset_names:
+                    logs.append({'message': f'WARNING: Dataset "{dataset_name}" already exists in well "{well_name}"', 'type': 'warning'})
+                    logs.append({'message': 'Upload cancelled to prevent duplicate data', 'type': 'error'})
+                    return jsonify({
+                        'error': f'Dataset "{dataset_name}" already exists in well "{well_name}". Cannot upload duplicate data.',
+                        'logs': logs
+                    }), 400
+                
+                # Append new dataset
                 well.datasets.append(dataset)
                 logs.append({'message': f'Dataset "{dataset_name}" appended to existing well', 'type': 'success'})
             else:
