@@ -1094,7 +1094,7 @@ def generate_cross_plot(well_id):
         print(f"[CROSS PLOT] Number of datasets: {len(well.datasets)}")
         
         # Use CPI.py CrossPlotManager (GitHub repo pattern)
-        from flask.utils.CPI import CrossPlotManager
+        from utils.CPI import CrossPlotManager
         
         print("[CROSS PLOT] Initializing CrossPlotManager...")
         manager = CrossPlotManager()
