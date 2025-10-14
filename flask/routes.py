@@ -2,11 +2,14 @@ import os
 import json
 import tempfile
 import traceback
+import shutil
+import lasio
 from pathlib import Path
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from utils.project_utils import create_project_structure
-from utils.las_processor import LASProcessor
+from utils.fe_data_objects import Well, Dataset, Constant
 
 api = Blueprint('api', __name__)
 
@@ -324,8 +327,34 @@ def preview_las():
         if not las_content:
             return jsonify({'error': 'LAS content is required'}), 400
         
-        preview_info = LASProcessor.preview_las(las_content)
-        return jsonify(preview_info)
+        # Save content to temp file to parse with lasio
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.las', delete=False) as tmp_file:
+            tmp_file.write(las_content)
+            tmp_path = tmp_file.name
+        
+        try:
+            las = lasio.read(tmp_path)
+            
+            well_name = las.well.WELL.value if hasattr(las.well, 'WELL') and las.well.WELL else "UNKNOWN"
+            uwi = las.well.UWI.value if hasattr(las.well, 'UWI') and las.well.UWI else ""
+            
+            preview_info = {
+                "wellName": well_name,
+                "uwi": uwi,
+                "company": las.well.COMP.value if hasattr(las.well, 'COMP') and las.well.COMP else "",
+                "field": las.well.FLD.value if hasattr(las.well, 'FLD') and las.well.FLD else "",
+                "location": las.well.LOC.value if hasattr(las.well, 'LOC') and las.well.LOC else "",
+                "startDepth": float(las.well.STRT.value) if hasattr(las.well, 'STRT') and las.well.STRT else None,
+                "stopDepth": float(las.well.STOP.value) if hasattr(las.well, 'STOP') and las.well.STOP else None,
+                "step": float(las.well.STEP.value) if hasattr(las.well, 'STEP') and las.well.STEP else None,
+                "curveNames": [curve.mnemonic for curve in las.curves],
+                "dataPoints": len(las.data) if las.data is not None else 0
+            }
+            
+            return jsonify(preview_info)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -373,38 +402,62 @@ def create_from_las():
         
         try:
             logs.append({'message': 'Parsing LAS file...', 'type': 'info'})
-            well = LASProcessor.las_to_well(tmp_las_path)
-            logs.append({'message': 'LAS file parsed successfully', 'type': 'success'})
-            logs.append({'message': f'Well Name: {well.well_name}', 'type': 'info'})
-            logs.append({'message': f'Well Type: {well.well_type}', 'type': 'info'})
             
-            # Count curves - use well_logs attribute from fe_data_objects.Dataset
-            total_curves = sum(len(ds.well_logs) if hasattr(ds, 'well_logs') else 0 for ds in well.datasets)
-            logs.append({'message': f'Found {total_curves} log curves', 'type': 'info'})
+            # Read LAS file to get well information
+            las = lasio.read(tmp_las_path)
+            well_name = las.well.WELL.value if hasattr(las.well, 'WELL') and las.well.WELL else Path(tmp_las_path).stem
             
-            logs.append({'message': 'Saving well to project...', 'type': 'info'})
-            result = LASProcessor.save_well_to_project(
-                well=well,
-                project_path=resolved_project_path,
-                las_source_file=tmp_las_path
+            # Create dataset from LAS file using Dataset.from_las
+            dataset = Dataset.from_las(
+                filename=tmp_las_path,
+                dataset_name='MAIN',
+                dataset_type='Continuous',
+                well_name=well_name
             )
             
-            logs.append({'message': f'SUCCESS: Well saved to: {result["well_path"]}', 'type': 'success'})
-            if result.get('las_path'):
-                logs.append({'message': f'SUCCESS: LAS file copied to: {result["las_path"]}', 'type': 'success'})
+            logs.append({'message': 'LAS file parsed successfully', 'type': 'success'})
+            logs.append({'message': f'Well Name: {well_name}', 'type': 'info'})
+            logs.append({'message': f'Dataset: {dataset.name}', 'type': 'info'})
+            logs.append({'message': f'Found {len(dataset.well_logs)} log curves', 'type': 'info'})
             
-            logs.append({'message': f'Well "{well.well_name}" created successfully!', 'type': 'success'})
+            # Create Well object
+            well = Well(
+                date_created=datetime.now(),
+                well_name=well_name,
+                well_type='Development',
+                datasets=[dataset]
+            )
+            
+            logs.append({'message': 'Saving well to project...', 'type': 'info'})
+            
+            # Save well to 10-WELLS folder as .ptrc file
+            wells_folder = os.path.join(resolved_project_path, '10-WELLS')
+            os.makedirs(wells_folder, exist_ok=True)
+            
+            well_file_path = os.path.join(wells_folder, f'{well_name}.ptrc')
+            well.serialize(filename=well_file_path)
+            
+            logs.append({'message': f'SUCCESS: Well saved to: {well_file_path}', 'type': 'success'})
+            
+            # Copy LAS file to 02-INPUT_LAS_FOLDER
+            las_folder = os.path.join(resolved_project_path, '02-INPUT_LAS_FOLDER')
+            os.makedirs(las_folder, exist_ok=True)
+            las_destination = os.path.join(las_folder, filename)
+            shutil.copy2(tmp_las_path, las_destination)
+            
+            logs.append({'message': f'SUCCESS: LAS file copied to: {las_destination}', 'type': 'success'})
+            logs.append({'message': f'Well "{well_name}" created successfully!', 'type': 'success'})
             
             return jsonify({
                 'success': True,
-                'message': f'Well "{well.well_name}" created successfully',
+                'message': f'Well "{well_name}" created successfully',
                 'well': {
-                    'id': well.well_name,
-                    'name': well.well_name,
+                    'id': well_name,
+                    'name': well_name,
                     'type': well.well_type
                 },
-                'filePath': result['well_path'],
-                'lasFilePath': result.get('las_path'),
+                'filePath': well_file_path,
+                'lasFilePath': las_destination,
                 'logs': logs
             }), 201
             
@@ -440,15 +493,14 @@ def list_wells():
             if filename.endswith('.ptrc'):
                 file_path = os.path.join(wells_folder, filename)
                 try:
-                    from utils.well_models import Well
-                    well = Well.load(file_path)
+                    well = Well.deserialize(filepath=file_path)
                     wells.append({
-                        'id': well.name,
-                        'name': well.name,
-                        'uwi': well.uwi,
+                        'id': well.well_name,
+                        'name': well.well_name,
+                        'type': well.well_type,
                         'path': file_path,
-                        'created_at': well.metadata.get('created_at'),
-                        'source': well.metadata.get('source', 'manual')
+                        'created_at': well.date_created.isoformat() if well.date_created else None,
+                        'datasets': len(well.datasets)
                     })
                 except Exception as e:
                     print(f"Error loading well {filename}: {e}")
