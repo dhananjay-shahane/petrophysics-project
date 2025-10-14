@@ -462,34 +462,80 @@ def create_from_las():
             
             logs.append({'message': f'Extracted well name: {well_name}', 'type': 'info'})
             
+            # Extract dataset name from params.SET if available
+            dataset_name = 'MAIN'
+            try:
+                if hasattr(las.params, 'SET') and las.params.SET.value:
+                    dataset_name = str(las.params.SET.value).strip()
+            except:
+                pass
+            
+            logs.append({'message': f'Dataset name: {dataset_name}', 'type': 'info'})
+            
+            # Get top and bottom depths
+            top = las.well.STRT.value
+            bottom = las.well.STOP.value
+            
             # Create dataset from LAS file using Dataset.from_las
             dataset = Dataset.from_las(
                 filename=tmp_las_path,
-                dataset_name='MAIN',
-                dataset_type='Continuous',
+                dataset_name=dataset_name,
+                dataset_type='Cont',
                 well_name=well_name
             )
             
             logs.append({'message': 'LAS file parsed successfully', 'type': 'success'})
-            logs.append({'message': f'Well Name: {well_name}', 'type': 'info'})
-            logs.append({'message': f'Dataset: {dataset.name}', 'type': 'info'})
             logs.append({'message': f'Found {len(dataset.well_logs)} log curves', 'type': 'info'})
             
-            # Create Well object
-            well = Well(
-                date_created=datetime.now(),
-                well_name=well_name,
-                well_type='Development',
-                datasets=[dataset]
-            )
-            
-            logs.append({'message': 'Saving well to project...', 'type': 'info'})
-            
-            # Save well to 10-WELLS folder as .ptrc file
+            # Check if well already exists
             wells_folder = os.path.join(resolved_project_path, '10-WELLS')
             os.makedirs(wells_folder, exist_ok=True)
             
             well_file_path = os.path.join(wells_folder, f'{well_name}.ptrc')
+            
+            if os.path.exists(well_file_path):
+                # Load existing well and append dataset
+                logs.append({'message': f'Well "{well_name}" already exists, appending dataset...', 'type': 'info'})
+                well = Well.deserialize(filepath=well_file_path)
+                well.datasets.append(dataset)
+                logs.append({'message': f'Dataset "{dataset_name}" appended to existing well', 'type': 'success'})
+            else:
+                # Create new well with REFERENCE and WELL_HEADER datasets
+                logs.append({'message': f'Creating new well "{well_name}"...', 'type': 'info'})
+                well = Well(
+                    date_created=datetime.now(),
+                    well_name=well_name,
+                    well_type='Dev'
+                )
+                
+                # Create REFERENCE dataset
+                ref = Dataset.reference(
+                    top=0,
+                    bottom=bottom,
+                    dataset_name='REFERENCE',
+                    dataset_type='REFERENCE',
+                    well_name=well_name
+                )
+                
+                # Create WELL_HEADER dataset
+                wh = Dataset.well_header(
+                    dataset_name='WELL_HEADER',
+                    dataset_type='WELL_HEADER',
+                    well_name=well_name
+                )
+                const = Constant(name='WELL_NAME', value=well.well_name, tag=well.well_name)
+                wh.constants.append(const)
+                
+                # Add datasets to well
+                well.datasets.append(ref)
+                well.datasets.append(wh)
+                well.datasets.append(dataset)
+                
+                logs.append({'message': f'New well created with REFERENCE and WELL_HEADER datasets', 'type': 'success'})
+            
+            logs.append({'message': 'Saving well to project...', 'type': 'info'})
+            
+            # Save well to .ptrc file
             well.serialize(filename=well_file_path)
             
             logs.append({'message': f'SUCCESS: Well saved to: {well_file_path}', 'type': 'success'})
@@ -524,6 +570,77 @@ def create_from_las():
         traceback.print_exc()
         logs.append({'message': f'ERROR: {str(e)}', 'type': 'error'})
         return jsonify({'error': str(e), 'logs': logs}), 500
+
+@api.route('/wells/load', methods=['GET'])
+def load_well():
+    """Load well data from .ptrc file"""
+    try:
+        file_path = request.args.get('filePath')
+        
+        if not file_path:
+            return jsonify({'error': 'File path is required'}), 400
+        
+        resolved_path = os.path.abspath(file_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        if not os.path.exists(resolved_path):
+            return jsonify({'error': 'Well file not found'}), 404
+        
+        if not resolved_path.endswith('.ptrc'):
+            return jsonify({'error': 'Invalid file type. Only .ptrc files are supported'}), 400
+        
+        # Load well using Well.deserialize
+        well = Well.deserialize(filepath=resolved_path)
+        
+        # Format datasets for frontend
+        datasets = []
+        for dataset in well.datasets:
+            # Format well logs
+            logs = []
+            for log in dataset.well_logs:
+                logs.append({
+                    'name': log.name,
+                    'date': str(log.date) if hasattr(log, 'date') else '',
+                    'description': log.description if hasattr(log, 'description') else '',
+                    'dataset': log.dtst if hasattr(log, 'dtst') else dataset.name,
+                    'interpolation': log.interpolation if hasattr(log, 'interpolation') else '',
+                    'logType': log.log_type if hasattr(log, 'log_type') else '',
+                    'values': log.log[:100] if hasattr(log, 'log') else []  # Limit to first 100 values for preview
+                })
+            
+            # Format constants
+            constants = []
+            if hasattr(dataset, 'constants') and dataset.constants:
+                for const in dataset.constants:
+                    constants.append({
+                        'name': const.name if hasattr(const, 'name') else '',
+                        'value': str(const.value) if hasattr(const, 'value') else '',
+                        'tag': const.tag if hasattr(const, 'tag') else ''
+                    })
+            
+            datasets.append({
+                'name': dataset.name,
+                'type': dataset.type,
+                'wellname': dataset.wellname,
+                'indexName': dataset.index_name if hasattr(dataset, 'index_name') else 'DEPTH',
+                'logs': logs,
+                'constants': constants
+            })
+        
+        return jsonify({
+            'success': True,
+            'well': {
+                'name': well.well_name,
+                'type': well.well_type,
+                'dateCreated': str(well.date_created) if hasattr(well, 'date_created') else '',
+                'datasets': datasets
+            }
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @api.route('/wells/list', methods=['GET'])
 def list_wells():
