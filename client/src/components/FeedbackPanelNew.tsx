@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 interface LogEntry {
   timestamp: string;
   message: string;
-  type: 'info' | 'error' | 'success' | 'warning';
+  type: "info" | "error" | "success" | "warning";
   icon?: string;
 }
 
@@ -21,7 +21,7 @@ interface WellData {
   location?: string;
 }
 
-export default function FeedbackPanelNew({ 
+export default function FeedbackPanelNew({
   onClose,
   onMinimize,
   isFloating,
@@ -32,7 +32,7 @@ export default function FeedbackPanelNew({
   onGeometryChange,
   projectPath,
   selectedWell,
-}: { 
+}: {
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -40,30 +40,37 @@ export default function FeedbackPanelNew({
   onFloat?: () => void;
   savedPosition?: { x: number; y: number };
   savedSize?: { width: number; height: number };
-  onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
+  onGeometryChange?: (
+    pos: { x: number; y: number },
+    size: { width: number; height: number },
+  ) => void;
   projectPath?: string;
   selectedWell?: WellData | null;
 }) {
   const [logs, setLogs] = useState<LogEntry[]>(() => {
-    const savedLogs = localStorage.getItem('feedbackLogs');
+    const savedLogs = localStorage.getItem("feedbackLogs");
     if (savedLogs) {
       try {
         return JSON.parse(savedLogs);
       } catch {
-        return [{
-          timestamp: new Date().toLocaleTimeString(),
-          message: 'Feedback console initialized',
-          type: 'info',
-          icon: '🔧'
-        }];
+        return [
+          {
+            timestamp: new Date().toLocaleTimeString(),
+            message: "Feedback console initialized",
+            type: "info",
+            icon: "🔧",
+          },
+        ];
       }
     }
-    return [{
-      timestamp: new Date().toLocaleTimeString(),
-      message: 'Feedback console initialized',
-      type: 'info',
-      icon: '🔧'
-    }];
+    return [
+      {
+        timestamp: new Date().toLocaleTimeString(),
+        message: "Feedback console initialized",
+        type: "info",
+        icon: "🔧",
+      },
+    ];
   });
   const [lasFile, setLasFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -72,56 +79,66 @@ export default function FeedbackPanelNew({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    localStorage.setItem('feedbackLogs', JSON.stringify(logs));
-    scrollEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  // useEffect(() => {
+  //   localStorage.setItem("feedbackLogs", JSON.stringify(logs));
+  //   scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [logs]);
 
-  const addLog = (message: string, type: LogEntry['type'] = 'info', icon?: string) => {
+  const addLog = (
+    message: string,
+    type: LogEntry["type"] = "info",
+    icon?: string,
+  ) => {
     const newLog: LogEntry = {
       timestamp: new Date().toLocaleTimeString(),
       message,
       type,
-      icon
+      icon,
     };
-    setLogs(prev => [...prev, newLog]);
+    setLogs((prev) => [...prev, newLog]);
   };
 
   const clearLogs = () => {
-    const newLogs: LogEntry[] = [{
-      timestamp: new Date().toLocaleTimeString(),
-      message: 'Logs cleared',
-      type: 'info',
-      icon: '🗑️'
-    }];
+    const newLogs: LogEntry[] = [
+      {
+        timestamp: new Date().toLocaleTimeString(),
+        message: "Logs cleared",
+        type: "info",
+        icon: "🗑️",
+      },
+    ];
     setLogs(newLogs);
-    localStorage.setItem('feedbackLogs', JSON.stringify(newLogs));
+    localStorage.setItem("feedbackLogs", JSON.stringify(newLogs));
   };
 
-  const getLogColor = (type: LogEntry['type']) => {
+  const getLogColor = (type: LogEntry["type"]) => {
     switch (type) {
-      case 'error':
-        return 'text-red-400';
-      case 'success':
-        return 'text-green-400';
-      case 'warning':
-        return 'text-yellow-400';
+      case "error":
+        return "text-red-400";
+      case "success":
+        return "text-green-400";
+      case "warning":
+        return "text-yellow-400";
       default:
-        return 'text-slate-300';
+        return "text-slate-300";
     }
   };
 
-  const getIconForMessage = (message: string, type: LogEntry['type']): string => {
-    if (message.includes('project') && message.toLowerCase().includes('open')) return '📁';
-    if (message.includes('LAS') && message.includes('upload')) return '📤';
-    if (message.includes('well') && message.includes('creat')) return '🔧';
-    if (message.includes('[LOG PLOT]')) return '📊';
-    if (message.includes('[CROSS PLOT]')) return '📈';
-    if (message.includes('data') && message.includes('load')) return '🗂️';
-    if (type === 'error') return '⚠️';
-    if (type === 'success') return '✅';
-    if (type === 'warning') return '⚠️';
-    return '📝';
+  const getIconForMessage = (
+    message: string,
+    type: LogEntry["type"],
+  ): string => {
+    if (message.includes("project") && message.toLowerCase().includes("open"))
+      return "📁";
+    if (message.includes("LAS") && message.includes("upload")) return "📤";
+    if (message.includes("well") && message.includes("creat")) return "🔧";
+    if (message.includes("[LOG PLOT]")) return "📊";
+    if (message.includes("[CROSS PLOT]")) return "📈";
+    if (message.includes("data") && message.includes("load")) return "🗂️";
+    if (type === "error") return "⚠️";
+    if (type === "success") return "✅";
+    if (type === "warning") return "⚠️";
+    return "📝";
   };
 
   useEffect(() => {
@@ -132,87 +149,121 @@ export default function FeedbackPanelNew({
 
     console.log = (...args) => {
       originalLog(...args);
-      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
-      
-      if (message.includes('[LOG PLOT]') || message.includes('[CROSS PLOT]') || 
-          message.includes('[LogPlot]') || message.includes('[CrossPlot]') ||
-          message.includes('project') || message.includes('well') || 
-          message.includes('data') || message.includes('upload')) {
-        const icon = getIconForMessage(message, 'info');
-        addLog(message, 'info', icon);
+      const message = args
+        .map((a) =>
+          typeof a === "object" ? JSON.stringify(a, null, 2) : String(a),
+        )
+        .join(" ");
+
+      if (
+        message.includes("[LOG PLOT]") ||
+        message.includes("[CROSS PLOT]") ||
+        message.includes("[LogPlot]") ||
+        message.includes("[CrossPlot]") ||
+        message.includes("project") ||
+        message.includes("well") ||
+        message.includes("data") ||
+        message.includes("upload")
+      ) {
+        const icon = getIconForMessage(message, "info");
+        addLog(message, "info", icon);
       }
     };
 
     console.error = (...args) => {
       originalError(...args);
-      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
-      addLog(message, 'error', '⚠️');
+      const message = args
+        .map((a) =>
+          typeof a === "object" ? JSON.stringify(a, null, 2) : String(a),
+        )
+        .join(" ");
+      addLog(message, "error", "⚠️");
     };
 
     console.warn = (...args) => {
       originalWarn(...args);
-      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
-      addLog(message, 'warning', '⚠️');
+      const message = args
+        .map((a) =>
+          typeof a === "object" ? JSON.stringify(a, null, 2) : String(a),
+        )
+        .join(" ");
+      addLog(message, "warning", "⚠️");
     };
 
     window.fetch = async (...args) => {
       const startTime = Date.now();
-      const url = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : args[0]?.toString() || 'unknown');
-      const method = (args[1]?.method || 'GET').toUpperCase();
-      
+      const url =
+        typeof args[0] === "string"
+          ? args[0]
+          : args[0] instanceof Request
+            ? args[0].url
+            : args[0]?.toString() || "unknown";
+      const method = (args[1]?.method || "GET").toUpperCase();
+
       try {
         const response = await originalFetch(...args);
         const duration = Date.now() - startTime;
-        
-        const urlPath = url.split('?')[0];
-        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : '';
-        let logMessage = `${method} ${urlPath} - ${response.status} (${duration}ms)${wellInfo}`;
-        let logType: LogEntry['type'] = 'info';
-        let icon = '🌐';
 
-        if (urlPath.includes('/api/wells/create-from-las')) {
+        const urlPath = url.split("?")[0];
+        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : "";
+        let logMessage = `${method} ${urlPath} - ${response.status} (${duration}ms)${wellInfo}`;
+        let logType: LogEntry["type"] = "info";
+        let icon = "🌐";
+
+        if (urlPath.includes("/api/wells/create-from-las")) {
           logMessage = `📤 LAS Upload Request - ${response.status} (${duration}ms)`;
-          logType = response.ok ? 'success' : 'error';
-          icon = '📤';
-        } else if (urlPath.includes('/log-plot')) {
+          logType = response.ok ? "success" : "error";
+          icon = "📤";
+        } else if (urlPath.includes("/log-plot")) {
           logMessage = `📊 Log Plot Generation${wellInfo} - ${response.status} (${duration}ms)`;
-          logType = response.ok ? 'success' : 'error';
-          icon = '📊';
-        } else if (urlPath.includes('/cross-plot')) {
+          logType = response.ok ? "success" : "error";
+          icon = "📊";
+        } else if (urlPath.includes("/cross-plot")) {
           logMessage = `📈 Cross Plot Generation${wellInfo} - ${response.status} (${duration}ms)`;
-          logType = response.ok ? 'success' : 'error';
-          icon = '📈';
-        } else if (urlPath.includes('/datasets')) {
+          logType = response.ok ? "success" : "error";
+          icon = "📈";
+        } else if (urlPath.includes("/datasets")) {
           logMessage = `🗂️ Data Loading${wellInfo} - ${response.status} (${duration}ms)`;
-          logType = response.ok ? 'success' : 'error';
-          icon = '🗂️';
-        } else if (urlPath.includes('/api/wells')) {
+          logType = response.ok ? "success" : "error";
+          icon = "🗂️";
+        } else if (urlPath.includes("/api/wells")) {
           logMessage = `🔧 Well Operation - ${response.status} (${duration}ms)`;
-          logType = response.ok ? 'success' : 'error';
-          icon = '🔧';
+          logType = response.ok ? "success" : "error";
+          icon = "🔧";
         }
 
         if (!response.ok) {
-          logType = 'error';
+          logType = "error";
         }
 
         addLog(logMessage, logType, icon);
-        
+
         return response;
       } catch (error) {
         const duration = Date.now() - startTime;
-        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : '';
-        addLog(`❌ ${method} ${url}${wellInfo} - Failed (${duration}ms): ${error}`, 'error', '⚠️');
+        const wellInfo = selectedWell ? ` [Well: ${selectedWell.name}]` : "";
+        addLog(
+          `❌ ${method} ${url}${wellInfo} - Failed (${duration}ms): ${error}`,
+          "error",
+          "⚠️",
+        );
         throw error;
       }
     };
 
-    (window as any).addAppLog = (message: string, type: LogEntry['type'] = 'info', icon?: string) => {
+    (window as any).addAppLog = (
+      message: string,
+      type: LogEntry["type"] = "info",
+      icon?: string,
+    ) => {
       const logIcon = icon || getIconForMessage(message, type);
       addLog(message, type, logIcon);
     };
 
-    (window as any).addPythonLog = (message: string, type: LogEntry['type'] = 'info') => {
+    (window as any).addPythonLog = (
+      message: string,
+      type: LogEntry["type"] = "info",
+    ) => {
       const icon = getIconForMessage(message, type);
       addLog(message, type, icon);
     };
@@ -230,7 +281,7 @@ export default function FeedbackPanelNew({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.name.endsWith('.las') && !file.name.endsWith('.LAS')) {
+      if (!file.name.endsWith(".las") && !file.name.endsWith(".LAS")) {
         toast({
           title: "Error",
           description: "Please select a LAS file",
@@ -239,7 +290,7 @@ export default function FeedbackPanelNew({
         return;
       }
       setLasFile(file);
-      addLog(`File selected: ${file.name}`, 'info', '📂');
+      addLog(`File selected: ${file.name}`, "info", "📂");
     }
   };
 
@@ -256,14 +307,15 @@ export default function FeedbackPanelNew({
     if (!projectPath || projectPath === "No path selected") {
       toast({
         title: "Error",
-        description: "No project is currently open. Please open or create a project first.",
+        description:
+          "No project is currently open. Please open or create a project first.",
         variant: "destructive",
       });
       return;
     }
 
     setIsUploading(true);
-    addLog('📤 Starting LAS file upload...', 'info', '📤');
+    addLog("📤 Starting LAS file upload...", "info", "📤");
 
     try {
       const formData = new FormData();
@@ -288,7 +340,11 @@ export default function FeedbackPanelNew({
         throw new Error(result.error || "Failed to create well from LAS file");
       }
 
-      addLog(`✅ Well "${result.well.name}" created successfully`, 'success', '✅');
+      addLog(
+        `✅ Well "${result.well.name}" created successfully`,
+        "success",
+        "✅",
+      );
 
       toast({
         title: "Success",
@@ -297,12 +353,14 @@ export default function FeedbackPanelNew({
 
       setLasFile(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     } catch (error: any) {
-      const errorMessage = error.message || "Failed to create well from LAS file. Please try again.";
-      addLog(`❌ Upload failed: ${errorMessage}`, 'error', '⚠️');
-      
+      const errorMessage =
+        error.message ||
+        "Failed to create well from LAS file. Please try again.";
+      addLog(`❌ Upload failed: ${errorMessage}`, "error", "⚠️");
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -314,9 +372,9 @@ export default function FeedbackPanelNew({
   };
 
   return (
-    <DockablePanel 
-      id="feedback" 
-      title="Feedback Logs" 
+    <DockablePanel
+      id="feedback"
+      title="Feedback Logs"
       onClose={onClose}
       onMinimize={onMinimize}
       isFloating={isFloating}
@@ -338,9 +396,9 @@ export default function FeedbackPanelNew({
               id="las-upload"
             />
             <label htmlFor="las-upload" className="cursor-pointer">
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="h-8"
                 asChild
                 disabled={isUploading}
@@ -351,21 +409,21 @@ export default function FeedbackPanelNew({
                 </span>
               </Button>
             </label>
-            
+
             {lasFile && (
               <span className="text-xs text-muted-foreground truncate flex-1">
                 {lasFile.name}
               </span>
             )}
-            
-            <Button 
-              size="sm" 
+
+            <Button
+              size="sm"
               onClick={handleUpload}
               disabled={!lasFile || isUploading}
               className="h-8"
             >
               <Upload className="w-3.5 h-3.5 mr-1.5" />
-              {isUploading ? 'Uploading...' : 'Upload'}
+              {isUploading ? "Uploading..." : "Upload"}
             </Button>
           </div>
         </div>
@@ -383,25 +441,22 @@ export default function FeedbackPanelNew({
               </div>
             )}
           </div>
-          <Button 
-            size="sm" 
-            variant="ghost"
-            onClick={clearLogs}
-            className="h-7"
-          >
+          <Button size="sm" variant="ghost" onClick={clearLogs} className="h-7">
             <Trash2 className="w-3.5 h-3.5 mr-1.5" />
             Clear
           </Button>
         </div>
-        
+
         <div className="flex-1 overflow-hidden max-h-[400px]">
-          <div 
+          <div
             ref={scrollRef}
             className="h-full max-h-[400px] overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
           >
             {logs.map((log, index) => (
               <div key={index} className="mb-1 flex gap-2">
-                <span className="text-slate-500 flex-shrink-0">[{log.timestamp}]</span>
+                <span className="text-slate-500 flex-shrink-0">
+                  [{log.timestamp}]
+                </span>
                 {log.icon && <span className="flex-shrink-0">{log.icon}</span>}
                 <span className={getLogColor(log.type)}>{log.message}</span>
               </div>

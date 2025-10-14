@@ -56,12 +56,14 @@ export default function DataBrowserPanelNew({
   const [activeTab, setActiveTab] = useState("logs");
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['Special', 'Point', 'Continuous']));
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["Special", "Point", "Continuous"]),
+  );
 
   const DATASET_COLORS = {
-    'Special': 'bg-orange-100 dark:bg-orange-900/30',
-    'Point': 'bg-green-100 dark:bg-green-900/30',
-    'Continuous': 'bg-blue-100 dark:bg-blue-900/30',
+    Special: "bg-orange-100 dark:bg-orange-900/30",
+    Point: "bg-green-100 dark:bg-green-900/30",
+    Continuous: "bg-blue-100 dark:bg-blue-900/30",
   };
 
   useEffect(() => {
@@ -73,7 +75,9 @@ export default function DataBrowserPanelNew({
       }
 
       try {
-        const response = await fetch(`/api/wells/data?wellPath=${encodeURIComponent(selectedWell.path)}`);
+        const response = await fetch(
+          `/api/wells/data?wellPath=${encodeURIComponent(selectedWell.path)}`,
+        );
         if (response.ok) {
           const data = await response.json();
           if (data.datasets && Array.isArray(data.datasets)) {
@@ -84,7 +88,7 @@ export default function DataBrowserPanelNew({
           }
         }
       } catch (error) {
-        console.error('Error loading well data:', error);
+        console.error("Error loading well data:", error);
       }
     };
 
@@ -97,13 +101,16 @@ export default function DataBrowserPanelNew({
     { id: "constants", label: "Constants" },
   ];
 
-  const groupedDatasets = datasets.reduce((acc, dataset) => {
-    if (!acc[dataset.type]) {
-      acc[dataset.type] = [];
-    }
-    acc[dataset.type].push(dataset);
-    return acc;
-  }, {} as Record<string, Dataset[]>);
+  const groupedDatasets = datasets.reduce(
+    (acc, dataset) => {
+      if (!acc[dataset.type]) {
+        acc[dataset.type] = [];
+      }
+      acc[dataset.type].push(dataset);
+      return acc;
+    },
+    {} as Record<string, Dataset[]>,
+  );
 
   const toggleType = (type: string) => {
     const newExpanded = new Set(expandedTypes);
@@ -176,7 +183,10 @@ export default function DataBrowserPanelNew({
         <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border">
           <tr className="h-10">
             {selectedDataset.well_logs.map((log, index) => (
-              <th key={index} className="px-4 py-2 text-left font-semibold border-r border-border">
+              <th
+                key={index}
+                className="px-4 py-2 text-left font-semibold border-r border-border"
+              >
                 {log.name}
               </th>
             ))}
@@ -184,12 +194,15 @@ export default function DataBrowserPanelNew({
         </thead>
         <tbody>
           {Array.from({ length: numReadings }, (_, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-border hover:bg-accent">
+            <tr
+              key={rowIndex}
+              className="border-b border-border hover:bg-accent"
+            >
               {selectedDataset.well_logs.map((log, colIndex) => (
                 <td key={colIndex} className="px-4 py-2 border-r border-border">
                   {log.log[rowIndex] !== null && log.log[rowIndex] !== undefined
                     ? log.log[rowIndex]
-                    : '-'}
+                    : "-"}
                 </td>
               ))}
             </tr>
@@ -246,25 +259,24 @@ export default function DataBrowserPanelNew({
       savedPosition={savedPosition}
       savedSize={savedSize}
       onGeometryChange={onGeometryChange}
-      defaultSize={{ width: 900, height: 600 }}
     >
-      <div className="flex h-full">
+      <div className="flex h-full max-h-[600px] overflow-scroll">
         <div className="w-64 border-r border-border bg-muted dark:bg-card/50 flex flex-col">
           <div className="p-3 border-b border-border">
             <div className="text-sm font-medium text-foreground">
               {selectedWell?.name || "No well selected"}
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-auto p-2">
             {Object.entries(groupedDatasets).map(([type, typeDatasets]) => (
               <div key={type} className="mb-2">
                 <button
                   onClick={() => toggleType(type)}
-                  className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || 'bg-gray-100'}`}
+                  className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || "bg-gray-100"}`}
                 >
                   <span>{type}</span>
-                  <span>{expandedTypes.has(type) ? '▼' : '▶'}</span>
+                  <span>{expandedTypes.has(type) ? "▼" : "▶"}</span>
                 </button>
                 {expandedTypes.has(type) && (
                   <div className="ml-4 mt-1 space-y-1">
@@ -274,8 +286,8 @@ export default function DataBrowserPanelNew({
                         onClick={() => handleDatasetClick(dataset)}
                         className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
                           selectedDataset === dataset
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-accent'
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-accent"
                         }`}
                       >
                         {dataset.name}
@@ -311,9 +323,15 @@ export default function DataBrowserPanelNew({
           </div>
 
           <div className="flex gap-2 p-2 bg-muted dark:bg-card/30 border-b border-border shrink-0">
-            <Button size="sm" variant="outline">Delete</Button>
-            <Button size="sm" variant="outline">Add</Button>
-            <Button size="sm" variant="outline">Export</Button>
+            <Button size="sm" variant="outline">
+              Delete
+            </Button>
+            <Button size="sm" variant="outline">
+              Add
+            </Button>
+            <Button size="sm" variant="outline">
+              Export
+            </Button>
           </div>
 
           <div className="flex-1 overflow-auto bg-white dark:bg-background min-h-0">
