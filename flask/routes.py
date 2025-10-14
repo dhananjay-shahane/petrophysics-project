@@ -1091,79 +1091,27 @@ def generate_cross_plot(well_id):
         
         well = Well.deserialize(filepath=well_file)
         print(f"[CROSS PLOT] Well loaded successfully: {well.well_name}")
+        print(f"[CROSS PLOT] Number of datasets: {len(well.datasets)}")
         
-        # Find the logs in well_logs
-        x_log = None
-        y_log = None
+        # Use CPI.py CrossPlotManager (GitHub repo pattern)
+        from flask.utils.CPI import CrossPlotManager
         
-        print("[CROSS PLOT] Searching for logs in datasets...")
-        for dataset in well.datasets:
-            for well_log in dataset.well_logs:
-                if well_log.name == x_log_name:
-                    x_log = well_log.log
-                    print(f"[CROSS PLOT] Found X-log: {x_log_name} ({len(x_log)} points)")
-                if well_log.name == y_log_name:
-                    y_log = well_log.log
-                    print(f"[CROSS PLOT] Found Y-log: {y_log_name} ({len(y_log)} points)")
+        print("[CROSS PLOT] Initializing CrossPlotManager...")
+        manager = CrossPlotManager()
         
-        if x_log is None or y_log is None:
-            print("[CROSS PLOT] Error: One or both logs not found")
-            return jsonify({'error': 'One or both logs not found'}), 404
+        print("[CROSS PLOT] Creating cross plot with matplotlib...")
+        plot_image = manager.create_cross_plot(well, x_log_name, y_log_name)
         
-        # Generate the cross plot using matplotlib
-        print("[CROSS PLOT] Generating cross plot with matplotlib...")
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        from matplotlib.figure import Figure
-        import numpy as np
-        
-        fig = Figure(figsize=(8, 8))
-        ax = fig.add_subplot(111)
-        
-        # Filter valid data
-        valid_points = [(x, y) for x, y in zip(x_log, y_log) 
-                       if x is not None and y is not None and not math.isnan(x) and not math.isnan(y)]
-        
-        print(f"[CROSS PLOT] Valid data points: {len(valid_points)}")
-        
-        if valid_points:
-            x_valid, y_valid = zip(*valid_points)
-            ax.scatter(x_valid, y_valid, alpha=0.5, s=10, color='blue')
-            
-            # Trend line
-            if len(x_valid) > 1:
-                z = np.polyfit(x_valid, y_valid, 1)
-                p = np.poly1d(z)
-                ax.plot(x_valid, p(x_valid), "r--", linewidth=1, alpha=0.8, label='Trend')
-                print(f"[CROSS PLOT] Trend line equation: y = {z[0]:.4f}x + {z[1]:.4f}")
-            
-            ax.set_xlabel(x_log_name, fontsize=10)
-            ax.set_ylabel(y_log_name, fontsize=10)
-            ax.set_title(f'{y_log_name} vs {x_log_name}', fontsize=12)
-            ax.grid(True, alpha=0.3)
-            ax.legend()
-        
-        # Convert to base64
-        import io
-        import base64
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
-        buf.close()
-        plt.close(fig)
-        
-        if not plot_image:
+        if plot_image is None:
             print("[CROSS PLOT] Error: Failed to generate plot")
-            return jsonify({'error': 'Failed to generate cross plot'}), 500
+            return jsonify({'error': 'Failed to generate cross plot - logs not found or no valid data'}), 404
         
         print("[CROSS PLOT] Cross plot generated successfully!")
         print(f"[CROSS PLOT] Image size: {len(plot_image)} characters (base64)")
         
         return jsonify({
             'success': True,
-            'image': plot_image,
+            'image': f'data:image/png;base64,{plot_image}',
             'format': 'png',
             'encoding': 'base64',
             'logs': [
@@ -1171,7 +1119,7 @@ def generate_cross_plot(well_id):
                 f"X-axis log: {x_log_name}",
                 f"Y-axis log: {y_log_name}",
                 f"Well loaded: {well.well_name}",
-                f"Valid data points: {len(valid_points)}",
+                f"Number of datasets: {len(well.datasets)}",
                 "Cross plot generated successfully!"
             ]
         }), 200

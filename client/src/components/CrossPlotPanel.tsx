@@ -94,7 +94,7 @@ export default function CrossPlotPanel({
         }
         
         const data = await response.json();
-        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
+        const logs = data.datasets?.filter((d: Dataset) => d.type === 'Cont' || d.type === 'continuous') || [];
         setAvailableLogs(logs);
         
         // Auto-select first two logs for cross plot

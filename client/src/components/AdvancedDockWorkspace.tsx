@@ -64,7 +64,7 @@ const PANEL_TITLES: Record<PanelId, string> = {
   wells: "Wells",
   zonation: "Zonation",
   dataBrowser: "Data Browser",
-  feedback: "Feedback",
+  feedback: "Testing & Logs",
   wellLogPlot: "Well Log Plot",
   crossPlot: "Cross Plot",
   logPlot: "Log Plot",

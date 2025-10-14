@@ -78,7 +78,7 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
         const data = await response.json();
         console.log('[WellLogPlot] Datasets response:', data);
         
-        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
+        const logs = data.datasets?.filter((d: Dataset) => d.type === 'Cont' || d.type === 'continuous') || [];
         console.log('[WellLogPlot] Continuous logs found:', logs.length, logs);
         setAvailableLogs(logs);
         
