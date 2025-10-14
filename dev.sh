@@ -9,7 +9,7 @@ FLASK_PID=$!
 sleep 2
 
 # Start Vite dev server on port 5000 (frontend)
-./node_modules/.bin/vite --port 5000 --host 0.0.0.0
+node_modules/.bin/vite --port 5000 --host 0.0.0.0
 
 # Cleanup on exit
 kill $FLASK_PID 2>/dev/null

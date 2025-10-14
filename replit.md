@@ -8,6 +8,15 @@ A professional petrophysics data analysis application featuring a dockable windo
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+- **2025-10-14**: Replit environment setup completed
+  - Installed all Node.js dependencies via npm
+  - Configured workflow to run both Flask (port 5001) and Vite (port 5000) servers
+  - Fixed dev.sh to use correct vite executable path
+  - Verified frontend properly configured with `allowedHosts: true` for Replit proxy
+  - Configured VM deployment with build and run commands
+  - Application successfully running with IDE-like interface
+
 ## System Architecture
 
 ### UI/UX Decisions
