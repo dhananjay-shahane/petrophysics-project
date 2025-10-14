@@ -9,6 +9,34 @@ A professional petrophysics data analysis application featuring a dockable windo
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
+- **2025-10-14**: Added Well Log Plotting from GitHub repo and session/localStorage persistence
+  - **Copied and adapted log plotting files from GitHub repo (dhananjay-shahane/python-code):**
+    - `flask/utils/LogPlot.py` - Flask-adapted LogPlotManager class (originally PyQt LogPlot.py)
+    - `flask/utils/logplotclass.py` - Flask-adapted matplotlib classes (originally PyQt logplotclass.py)
+    - Removed all PyQt5 dependencies, converted to web-compatible matplotlib with Agg backend
+    - Fixed data access to use Dataset.well_logs and Dataset.index_log structure
+  - **Flask API Endpoints:**
+    - POST `/api/wells/{id}/log-plot` - Generate multi-track well log plots
+    - POST `/api/wells/{id}/cross-plot` - Generate cross plots between two logs
+    - Plots returned as base64 PNG images for web display
+  - **Frontend (WellLogPlot.tsx):**
+    - Log selection UI with clickable buttons for available logs
+    - Auto-selects first 3 logs for quick plotting
+    - Displays matplotlib-generated plots as images
+  - **Features:**
+    - Shared y-axis (depth) across multiple tracks like original PyQt version
+    - Depth axis inverted (increases downward) for standard well log display
+    - X-axis labels positioned at top of each track
+    - Grid and formatting optimized for petrophysical data
+  - Implemented data browser with GitHub repo logic (dataset tree, logs/values/constants tabs)
+  - Added NaN sanitization for JSON responses (converts NaN/Infinity to null)
+  - Created `/wells/dataset-details` API endpoint for specific dataset data
+  - Implemented Flask session management with SECRET_KEY for server-side storage
+  - Added session endpoints: POST/GET `/api/session/project`, POST `/api/session/clear`
+  - Implemented localStorage to save/load last opened project path (client-side)
+  - Project path, name, and creation date persist in both Flask session and localStorage
+  - Data Browser automatically loads last project on page refresh from either storage
+  
 - **2025-10-14**: GitHub import completed and configured for Replit
   - Installed all Node.js dependencies via npm (533 packages)
   - Configured workflow "Dev Server" to run both Flask (port 5001) and Vite (port 5000) servers

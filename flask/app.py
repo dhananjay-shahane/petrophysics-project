@@ -1,5 +1,6 @@
 import os
-from flask import Flask, send_from_directory
+import secrets
+from flask import Flask, send_from_directory, session
 from flask_cors import CORS
 from routes import api
 
@@ -11,7 +12,15 @@ def create_app():
     # In production, serve static files from dist/public
     static_folder = '../dist/public' if IS_PRODUCTION else None
     app = Flask(__name__, static_folder=static_folder)
-    CORS(app)
+    
+    # Session configuration
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = True
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30  # 30 days
+    
+    # CORS configuration with credentials support
+    CORS(app, supports_credentials=True, origins=['http://localhost:5000', 'http://0.0.0.0:5000'])
     
     # Register API routes
     app.register_blueprint(api, url_prefix='/api')

@@ -172,6 +172,59 @@ export default function AdvancedDockWorkspace() {
     }
   }, [theme]);
 
+  // Load last opened project from localStorage on mount
+  useEffect(() => {
+    const savedProjectPath = localStorage.getItem('lastProjectPath');
+    const savedProjectName = localStorage.getItem('lastProjectName');
+    const savedProjectCreatedAt = localStorage.getItem('lastProjectCreatedAt');
+    
+    if (savedProjectPath) {
+      setProjectPath(savedProjectPath);
+      if (savedProjectName) {
+        setProjectName(savedProjectName);
+      }
+      if (savedProjectCreatedAt) {
+        setProjectCreatedAt(savedProjectCreatedAt);
+      }
+    }
+  }, []);
+
+  // Save project path to localStorage and Flask session whenever it changes
+  useEffect(() => {
+    const saveProjectToSession = async () => {
+      if (projectPath && projectPath !== "No path selected") {
+        // Save to localStorage
+        localStorage.setItem('lastProjectPath', projectPath);
+        if (projectName) {
+          localStorage.setItem('lastProjectName', projectName);
+        }
+        if (projectCreatedAt) {
+          localStorage.setItem('lastProjectCreatedAt', projectCreatedAt);
+        }
+        
+        // Save to Flask session
+        try {
+          await fetch('/api/session/project', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              projectPath: projectPath,
+              projectName: projectName,
+              createdAt: projectCreatedAt
+            })
+          });
+        } catch (error) {
+          console.error('Error saving to session:', error);
+        }
+      }
+    };
+    
+    saveProjectToSession();
+  }, [projectPath, projectName, projectCreatedAt]);
+
   // Load wells when project path changes
   useEffect(() => {
     const loadWells = async () => {

@@ -1,76 +1,103 @@
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Button } from "@/components/ui/button";
 
-interface Track {
+interface Dataset {
   name: string;
-  unit: string;
-  description: string;
-  data: number[];
-  indexLog: number[];
-  indexName: string;
-}
-
-interface LogPlotData {
-  wellName: string;
-  tracks: Track[];
-  metadata?: any;
+  type: string;
 }
 
 interface WellLogPlotProps {
-  selectedWell?: { name: string; well_name?: string; projectPath?: string } | null;
+  selectedWell?: { id?: string; name: string; well_name?: string; projectPath?: string } | null;
   projectPath?: string;
 }
 
 export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotProps) {
-  const [plotData, setPlotData] = useState<LogPlotData | null>(null);
+  const [plotImage, setPlotImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableLogs, setAvailableLogs] = useState<Dataset[]>([]);
+  const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!selectedWell) {
-      setPlotData(null);
+      setPlotImage(null);
       setError(null);
+      setAvailableLogs([]);
+      setSelectedLogs([]);
       return;
     }
 
-    const fetchPlotData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
+    const fetchAvailableLogs = async () => {
       try {
-        const wellName = selectedWell.well_name || selectedWell.name;
-        // Include projectPath in query params if available
+        const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
         const path = projectPath || selectedWell.projectPath || '';
-        const url = path 
-          ? `/api/wells/${encodeURIComponent(wellName)}/log-plot?projectPath=${encodeURIComponent(path)}`
-          : `/api/wells/${encodeURIComponent(wellName)}/log-plot`;
-        const response = await fetch(url);
+        
+        const response = await fetch(`/api/wells/datasets?projectPath=${encodeURIComponent(path)}&wellName=${encodeURIComponent(wellId)}`);
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch plot data');
+          throw new Error('Failed to fetch datasets');
         }
         
         const data = await response.json();
-        setPlotData(data);
+        const logs = data.datasets?.filter((d: Dataset) => d.type === 'continuous') || [];
+        setAvailableLogs(logs);
         
-        if ((window as any).addPythonLog) {
-          (window as any).addPythonLog(`Loaded well log data for ${wellName}`, 'success');
+        // Auto-select first 3 logs
+        if (logs.length > 0) {
+          setSelectedLogs(logs.slice(0, 3).map((l: Dataset) => l.name));
         }
       } catch (err: any) {
-        console.error('Error fetching plot data:', err);
-        setError(err.message || 'Failed to load well log data');
-        
-        if ((window as any).addPythonLog) {
-          (window as any).addPythonLog(`Error: ${err.message}`, 'error');
-        }
-      } finally {
-        setIsLoading(false);
+        console.error('Error fetching datasets:', err);
       }
     };
 
-    fetchPlotData();
-  }, [selectedWell]);
+    fetchAvailableLogs();
+  }, [selectedWell, projectPath]);
+
+  const generatePlot = async () => {
+    if (!selectedWell || selectedLogs.length === 0) return;
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const wellId = selectedWell.id || selectedWell.well_name || selectedWell.name;
+      const path = projectPath || selectedWell.projectPath || '';
+      
+      const response = await fetch(`/api/wells/${encodeURIComponent(wellId)}/log-plot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectPath: path,
+          logNames: selectedLogs
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate plot');
+      }
+      
+      const data = await response.json();
+      setPlotImage(data.image);
+      
+    } catch (err: any) {
+      console.error('Error generating plot:', err);
+      setError(err.message || 'Failed to generate plot');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleLog = (logName: string) => {
+    setSelectedLogs(prev => 
+      prev.includes(logName) 
+        ? prev.filter(l => l !== logName)
+        : [...prev, logName]
+    );
+  };
 
   if (!selectedWell) {
     return (
@@ -83,88 +110,76 @@ export default function WellLogPlot({ selectedWell, projectPath }: WellLogPlotPr
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-background">
-        <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium">Loading well log data...</p>
-          <p className="text-sm mt-2">{selectedWell.well_name || selectedWell.name}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-background">
-        <div className="text-center text-destructive">
-          <p className="text-lg font-medium">Error loading plot data</p>
-          <p className="text-sm mt-2">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!plotData || !plotData.tracks || plotData.tracks.length === 0) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-background">
-        <div className="text-center text-muted-foreground">
-          <p className="text-lg font-medium">No log data available</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full h-full overflow-auto bg-background p-4">
-      <div className="text-lg font-semibold mb-4 text-center">{plotData.wellName}</div>
-      <div className="flex gap-4 overflow-x-auto">
-        {plotData.tracks.slice(0, 6).map((track, index) => {
-          const chartData = track.data.map((value, i) => ({
-            depth: track.indexLog[i],
-            value: value
-          })).filter(d => d.value !== null && !isNaN(d.value));
-
-          const colors = ['#2563eb', '#9333ea', '#059669', '#dc2626', '#f59e0b', '#8b5cf6'];
-          
-          return (
-            <div key={index} className="min-w-[200px] flex-shrink-0">
-              <div className="text-sm font-medium text-center mb-2">
-                {track.name}
-                {track.unit && <span className="text-xs text-muted-foreground ml-1">({track.unit})</span>}
-              </div>
-              <ResponsiveContainer width={200} height={500}>
-                <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis 
-                    dataKey="value" 
-                    type="number" 
-                    domain={['auto', 'auto']}
-                    tick={{ fontSize: 10 }}
-                  />
-                  <YAxis 
-                    dataKey="depth" 
-                    reversed 
-                    type="number"
-                    domain={['auto', 'auto']}
-                    tick={{ fontSize: 10 }}
-                    label={{ value: track.indexName, angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ fontSize: 11, backgroundColor: '#1e293b', border: '1px solid #334155' }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke={colors[index % colors.length]} 
-                    dot={false} 
-                    strokeWidth={1.5}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+    <div className="w-full h-full flex flex-col bg-background">
+      {/* Control Panel */}
+      <div className="border-b p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Well: {selectedWell.well_name || selectedWell.name}</h3>
+          <Button 
+            onClick={generatePlot} 
+            disabled={isLoading || selectedLogs.length === 0}
+            size="sm"
+          >
+            {isLoading ? 'Generating...' : 'Generate Plot'}
+          </Button>
+        </div>
+        
+        {/* Log Selection */}
+        {availableLogs.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Select logs to plot:</p>
+            <div className="flex flex-wrap gap-2">
+              {availableLogs.map((log) => (
+                <button
+                  key={log.name}
+                  onClick={() => toggleLog(log.name)}
+                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                    selectedLogs.includes(log.name)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background hover:bg-accent border-border'
+                  }`}
+                >
+                  {log.name}
+                </button>
+              ))}
             </div>
-          );
-        })}
+          </div>
+        )}
+      </div>
+
+      {/* Plot Display Area */}
+      <div className="flex-1 overflow-auto p-4">
+        {isLoading && (
+          <div className="w-full h-full flex items-center justify-center">
+            <p className="text-muted-foreground">Generating plot...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center text-destructive">
+              <p className="text-lg font-medium">Error</p>
+              <p className="text-sm mt-2">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && !plotImage && (
+          <div className="w-full h-full flex items-center justify-center">
+            <p className="text-muted-foreground">Select logs and click "Generate Plot" to view</p>
+          </div>
+        )}
+
+        {!isLoading && plotImage && (
+          <div className="flex justify-center">
+            <img 
+              src={`data:image/png;base64,${plotImage}`} 
+              alt="Well Log Plot"
+              className="max-w-full h-auto"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

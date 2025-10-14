@@ -4,12 +4,15 @@ import tempfile
 import traceback
 import shutil
 import lasio
+import math
 from pathlib import Path
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
 from utils.project_utils import create_project_structure
 from utils.fe_data_objects import Well, Dataset, Constant
+from utils.LogPlot import LogPlotManager
+from utils.logplotclass import create_multi_track_plot, FigureWidget
 
 api = Blueprint('api', __name__)
 
@@ -18,6 +21,20 @@ ALLOWED_EXTENSIONS = {'las', 'LAS'}
 
 # Ensure workspace exists
 Path(WORKSPACE_ROOT).mkdir(parents=True, exist_ok=True)
+
+# Helper function to convert NaN to None for JSON serialization
+def sanitize_value(value):
+    """Convert NaN, Infinity, and other non-JSON values to None"""
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+    return value
+
+def sanitize_list(lst):
+    """Convert all NaN values in a list to None"""
+    if not lst:
+        return []
+    return [sanitize_value(v) for v in lst]
 
 # Get workspace info
 @api.route('/workspace/info', methods=['GET'])
@@ -611,6 +628,7 @@ def load_well():
             # Format well logs
             logs = []
             for log in dataset.well_logs:
+                preview_values = log.log[:100] if hasattr(log, 'log') else []
                 logs.append({
                     'name': log.name,
                     'date': str(log.date) if hasattr(log, 'date') else '',
@@ -618,7 +636,7 @@ def load_well():
                     'dataset': log.dtst if hasattr(log, 'dtst') else dataset.name,
                     'interpolation': log.interpolation if hasattr(log, 'interpolation') else '',
                     'logType': log.log_type if hasattr(log, 'log_type') else '',
-                    'values': log.log[:100] if hasattr(log, 'log') else []  # Limit to first 100 values for preview
+                    'values': sanitize_list(preview_values)  # Limit to first 100 values for preview, sanitize NaN
                 })
             
             # Format constants
@@ -686,7 +704,7 @@ def get_well_data():
                     'dtst': log.dtst if hasattr(log, 'dtst') else dataset.name,
                     'interpolation': log.interpolation if hasattr(log, 'interpolation') else '',
                     'log_type': log.log_type if hasattr(log, 'log_type') else '',
-                    'log': log.log if hasattr(log, 'log') else []  # Complete values
+                    'log': sanitize_list(log.log) if hasattr(log, 'log') else []  # Complete values with NaN converted to null
                 })
             
             # Format constants
@@ -704,7 +722,7 @@ def get_well_data():
                 'type': dataset.type,
                 'wellname': dataset.wellname,
                 'index_name': dataset.index_name if hasattr(dataset, 'index_name') else 'DEPTH',
-                'index_log': dataset.index_log if hasattr(dataset, 'index_log') else [],
+                'index_log': sanitize_list(dataset.index_log) if hasattr(dataset, 'index_log') else [],
                 'well_logs': logs,
                 'constants': constants
             })
@@ -761,7 +779,7 @@ def get_dataset_details():
                 'dtst': log.dtst if hasattr(log, 'dtst') else target_dataset.name,
                 'interpolation': log.interpolation if hasattr(log, 'interpolation') else '',
                 'log_type': log.log_type if hasattr(log, 'log_type') else '',
-                'log': log.log if hasattr(log, 'log') else []
+                'log': sanitize_list(log.log) if hasattr(log, 'log') else []
             })
         
         # Format constants
@@ -779,7 +797,7 @@ def get_dataset_details():
             'type': target_dataset.type,
             'wellname': target_dataset.wellname,
             'index_name': target_dataset.index_name if hasattr(target_dataset, 'index_name') else 'DEPTH',
-            'index_log': target_dataset.index_log if hasattr(target_dataset, 'index_log') else [],
+            'index_log': sanitize_list(target_dataset.index_log) if hasattr(target_dataset, 'index_log') else [],
             'well_logs': logs,
             'constants': constants
         }
@@ -833,4 +851,277 @@ def list_wells():
         return jsonify({'wells': wells})
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Session Management Routes
+@api.route('/session/project', methods=['POST'])
+def save_project_session():
+    """Save current project path to session"""
+    try:
+        data = request.get_json()
+        project_path = data.get('projectPath')
+        project_name = data.get('projectName')
+        created_at = data.get('createdAt')
+        
+        if not project_path:
+            return jsonify({'error': 'Project path is required'}), 400
+        
+        # Validate path
+        resolved_path = os.path.abspath(project_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        # Store in session
+        session['project_path'] = project_path
+        session['project_name'] = project_name
+        session['created_at'] = created_at
+        session.modified = True
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project saved to session',
+            'projectPath': project_path,
+            'projectName': project_name
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/session/project', methods=['GET'])
+def get_project_session():
+    """Get current project path from session"""
+    try:
+        project_path = session.get('project_path')
+        project_name = session.get('project_name')
+        created_at = session.get('created_at')
+        
+        if not project_path:
+            return jsonify({
+                'success': True,
+                'hasProject': False,
+                'projectPath': None,
+                'projectName': None,
+                'createdAt': None
+            }), 200
+        
+        return jsonify({
+            'success': True,
+            'hasProject': True,
+            'projectPath': project_path,
+            'projectName': project_name,
+            'createdAt': created_at
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/session/clear', methods=['POST'])
+def clear_session():
+    """Clear the session"""
+    try:
+        session.clear()
+        return jsonify({
+            'success': True,
+            'message': 'Session cleared'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Well Datasets Route
+@api.route('/wells/datasets', methods=['GET'])
+def get_well_datasets():
+    """Get all datasets for a well"""
+    try:
+        project_path = request.args.get('projectPath')
+        well_name = request.args.get('wellName')
+        
+        if not project_path or not well_name:
+            return jsonify({'error': 'Project path and well name are required'}), 400
+        
+        # Validate path
+        resolved_path = os.path.abspath(project_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        # Load the well
+        wells_folder = os.path.join(resolved_path, "10-WELLS")
+        well_file = os.path.join(wells_folder, f"{well_name}.ptrc")
+        
+        if not os.path.exists(well_file):
+            return jsonify({'error': f'Well {well_name} not found'}), 404
+        
+        well = Well.deserialize(filepath=well_file)
+        
+        # Collect all unique log names from datasets
+        datasets = []
+        seen_logs = set()
+        
+        for dataset in well.datasets:
+            # Add dataset info
+            datasets.append({
+                'name': dataset.name,
+                'type': dataset.type,
+                'date_created': dataset.date_created.isoformat() if dataset.date_created else None
+            })
+            
+            # Also collect individual well logs
+            for well_log in dataset.well_logs:
+                if well_log.name not in seen_logs:
+                    seen_logs.add(well_log.name)
+                    datasets.append({
+                        'name': well_log.name,
+                        'type': 'continuous' if well_log.log_type == 'continuous' else dataset.type,
+                        'description': well_log.description
+                    })
+        
+        return jsonify({
+            'success': True,
+            'wellName': well.well_name,
+            'datasets': datasets
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+# Well Log Plotting Routes
+@api.route('/wells/<well_id>/log-plot', methods=['POST'])
+def generate_log_plot(well_id):
+    """Generate a well log plot for specified logs"""
+    try:
+        data = request.get_json()
+        project_path = data.get('projectPath')
+        log_names = data.get('logNames', [])  # List of log names to plot
+        
+        if not project_path:
+            return jsonify({'error': 'Project path is required'}), 400
+        
+        if not log_names or len(log_names) == 0:
+            return jsonify({'error': 'At least one log name is required'}), 400
+        
+        # Validate path
+        resolved_path = os.path.abspath(project_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        # Load the well
+        wells_folder = os.path.join(resolved_path, "10-WELLS")
+        well_file = os.path.join(wells_folder, f"{well_id}.ptrc")
+        
+        if not os.path.exists(well_file):
+            return jsonify({'error': f'Well {well_id} not found'}), 404
+        
+        well = Well.deserialize(filepath=well_file)
+        
+        # Generate the plot using GitHub repo classes
+        plot_manager = LogPlotManager()
+        plot_image = plot_manager.create_log_plot(well, log_names)
+        
+        if not plot_image:
+            return jsonify({'error': 'Failed to generate plot'}), 500
+        
+        return jsonify({
+            'success': True,
+            'image': plot_image,
+            'format': 'png',
+            'encoding': 'base64'
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/wells/<well_id>/cross-plot', methods=['POST'])
+def generate_cross_plot(well_id):
+    """Generate a cross plot of two logs"""
+    try:
+        data = request.get_json()
+        project_path = data.get('projectPath')
+        x_log_name = data.get('xLog')
+        y_log_name = data.get('yLog')
+        
+        if not project_path or not x_log_name or not y_log_name:
+            return jsonify({'error': 'Project path, x log, and y log are required'}), 400
+        
+        # Validate path
+        resolved_path = os.path.abspath(project_path)
+        if not validate_path(resolved_path):
+            return jsonify({'error': 'Access denied: path outside petrophysics-workplace'}), 403
+        
+        # Load the well
+        wells_folder = os.path.join(resolved_path, "10-WELLS")
+        well_file = os.path.join(wells_folder, f"{well_id}.ptrc")
+        
+        if not os.path.exists(well_file):
+            return jsonify({'error': f'Well {well_id} not found'}), 404
+        
+        well = Well.deserialize(filepath=well_file)
+        
+        # Find the logs in well_logs
+        x_log = None
+        y_log = None
+        
+        for dataset in well.datasets:
+            for well_log in dataset.well_logs:
+                if well_log.name == x_log_name:
+                    x_log = well_log.log
+                if well_log.name == y_log_name:
+                    y_log = well_log.log
+        
+        if x_log is None or y_log is None:
+            return jsonify({'error': 'One or both logs not found'}), 404
+        
+        # Generate the cross plot using matplotlib
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        from matplotlib.figure import Figure
+        import numpy as np
+        
+        fig = Figure(figsize=(8, 8))
+        ax = fig.add_subplot(111)
+        
+        # Filter valid data
+        valid_points = [(x, y) for x, y in zip(x_log, y_log) 
+                       if x is not None and y is not None and not math.isnan(x) and not math.isnan(y)]
+        
+        if valid_points:
+            x_valid, y_valid = zip(*valid_points)
+            ax.scatter(x_valid, y_valid, alpha=0.5, s=10, color='blue')
+            
+            # Trend line
+            if len(x_valid) > 1:
+                z = np.polyfit(x_valid, y_valid, 1)
+                p = np.poly1d(z)
+                ax.plot(x_valid, p(x_valid), "r--", linewidth=1, alpha=0.8, label='Trend')
+            
+            ax.set_xlabel(x_log_name, fontsize=10)
+            ax.set_ylabel(y_log_name, fontsize=10)
+            ax.set_title(f'{y_log_name} vs {x_log_name}', fontsize=12)
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+        
+        # Convert to base64
+        import io
+        import base64
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        buf.close()
+        plt.close(fig)
+        
+        if not plot_image:
+            return jsonify({'error': 'Failed to generate cross plot'}), 500
+        
+        return jsonify({
+            'success': True,
+            'image': plot_image,
+            'format': 'png',
+            'encoding': 'base64'
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
