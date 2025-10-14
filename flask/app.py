@@ -34,9 +34,11 @@ def create_app():
         @app.route('/', defaults={'path': ''})
         @app.route('/<path:path>')
         def serve_frontend(path):
-            if path and os.path.exists(os.path.join(app.static_folder, path)):
+            if app.static_folder and path and os.path.exists(os.path.join(app.static_folder, path)):
                 return send_from_directory(app.static_folder, path)
-            return send_from_directory(app.static_folder, 'index.html')
+            if app.static_folder:
+                return send_from_directory(app.static_folder, 'index.html')
+            return {'error': 'Static folder not configured'}, 500
     
     return app
 
