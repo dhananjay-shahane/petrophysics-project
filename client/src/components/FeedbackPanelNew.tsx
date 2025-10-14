@@ -36,7 +36,7 @@ export default function FeedbackPanelNew({
   const [logs, setLogs] = useState<LogEntry[]>([
     {
       timestamp: new Date().toLocaleTimeString(),
-      message: 'Python log console initialized',
+      message: 'Feedback console initialized',
       type: 'info'
     }
   ]);
@@ -182,7 +182,7 @@ export default function FeedbackPanelNew({
   return (
     <DockablePanel 
       id="feedback" 
-      title="Python Logs" 
+      title="Feedback Logs" 
       onClose={onClose}
       onMinimize={onMinimize}
       isFloating={isFloating}
@@ -241,7 +241,7 @@ export default function FeedbackPanelNew({
         <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Terminal className="w-4 h-4" />
-            <span>Python Execution Console</span>
+            <span>Feedback Console</span>
           </div>
           <Button 
             size="sm" 

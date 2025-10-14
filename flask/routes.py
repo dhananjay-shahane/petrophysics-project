@@ -1111,7 +1111,7 @@ def generate_cross_plot(well_id):
         
         return jsonify({
             'success': True,
-            'image': f'data:image/png;base64,{plot_image}',
+            'image': plot_image,
             'format': 'png',
             'encoding': 'base64',
             'logs': [
