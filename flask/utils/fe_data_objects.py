@@ -220,11 +220,34 @@ class LogFrame(pd.DataFrame):
         plt.grid(True)
         plt.show()
         
+@dataclass
 class WellLog:
     """Data class representing a well log."""
+    name: str
+    date: str
+    description: str
+    log: List[Union[str, float]]  # New attribute for log values
+    log_type: value_type
+    interpolation: interpolation_type
+    dtst: str
 
     def __init__(self, name: str, date: str, description: str, interpolation: interpolation_type, log_type: value_type, log: List[Union[str, float]], dtst: str):
-        # Assign the values to the instance first
+        # Enforce that all values are either str or float, and all elements should be the same type
+        if not log:
+            return
+            raise ValueError("Values list cannot be empty.")
+        
+        first_type = type(log[0])
+
+        # Ensure that all elements are the same type (either all str or all float)
+        if not all(isinstance(v, first_type) for v in log):
+            raise ValueError("All elements of 'values' must be of the same type: either all str or all float.")
+        
+        # Ensure that all elements are either str or float
+        if not all(isinstance(v, (str, float)) for v in log):
+            raise ValueError("All elements of 'values' must be either str or float.")
+
+        # Assign the validated values to the instance
         self.name = name
         self.date = date
         self.description = description
@@ -233,16 +256,22 @@ class WellLog:
         self.interpolation = interpolation
         self.dtst = dtst
         
-        # Then validate (but don't block initialization)
-        if log and len(log) > 0:
-            first_type = type(log[0])
-            # Ensure that all elements are the same type (either all str or all float)
-            if not all(isinstance(v, first_type) for v in log):
-                raise ValueError("All elements of 'values' must be of the same type: either all str or all float.")
-            
-            # Ensure that all elements are either str or float
-            if not all(isinstance(v, (str, float)) for v in log):
-                raise ValueError("All elements of 'values' must be either str or float.")
+    def __post_init__(self):
+        
+        # Enforce that all elements in 'values' match the specified 'values_type'
+        if self.log_type == "str":
+            if not all(isinstance(v, str) for v in self.values):
+                raise ValueError("All elements in 'values' must be of type 'str'.")
+        elif self.log_type == "float":
+            if not all(isinstance(v, float) for v in self.values):
+                raise ValueError("All elements in 'values' must be of type 'float'.")
+        else:
+            raise ValueError("Invalid 'values_type'. Must be either 'str' or 'float'.")
+        
+        # Ensures that 'interp' is one of the allowed values if not using Literal
+        if self.interp not in {"POINT", "TOP", "CONTINUOUS"}:
+            raise ValueError(f"Invalid value for interp. Must be one of: 'POINT', 'CONTINUOUS', 'TOP'.")
+        
     def to_dict(self) -> Dict[str, Any]:
         """Convert WellLog to a dictionary for JSON serialization."""
         return {
