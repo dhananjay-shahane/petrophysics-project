@@ -232,7 +232,7 @@ class WellLog:
     dtst: str
 
     def __init__(self, name: str, date: str, description: str, interpolation: interpolation_type, log_type: value_type, log: List[Union[str, float]], dtst: str):
-        # Enforce that all values are either str or numeric (int/float)
+        # Enforce that all values are either str or numeric (int/float), allowing None for missing values
         if not log:
             self.name = name
             self.date = date
@@ -243,16 +243,20 @@ class WellLog:
             self.dtst = dtst
             return
         
-        # Check if all values are numeric (int or float) OR all are strings
-        all_numeric = all(isinstance(v, (int, float)) for v in log)
-        all_strings = all(isinstance(v, str) for v in log)
+        # Filter out None values for type checking
+        non_none_values = [v for v in log if v is not None]
         
-        if not (all_numeric or all_strings):
-            raise ValueError("All elements of 'values' must be of the same category: either all numeric (int/float) or all str.")
-        
-        # Convert all numeric values to float for consistency
-        if all_numeric:
-            log = [float(v) for v in log]
+        if non_none_values:
+            # Check if all non-None values are numeric (int or float) OR all are strings
+            all_numeric = all(isinstance(v, (int, float)) for v in non_none_values)
+            all_strings = all(isinstance(v, str) for v in non_none_values)
+            
+            if not (all_numeric or all_strings):
+                raise ValueError("All elements of 'values' must be of the same category: either all numeric (int/float) or all str.")
+            
+            # Convert all numeric values to float for consistency, keeping None as is
+            if all_numeric:
+                log = [float(v) if v is not None else None for v in log]
 
         # Assign the validated values to the instance
         self.name = name
