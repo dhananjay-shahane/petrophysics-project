@@ -16,6 +16,15 @@ Preferred communication style: Simple, everyday language.
   - Verified frontend properly configured with `allowedHosts: true` for Replit proxy
   - Configured VM deployment with build and run commands
   - Application successfully running with IDE-like interface
+  
+- **2025-10-14**: GitHub repository integration verified
+  - Confirmed Flask backend has complete GitHub repo logic from `dhananjay-shahane/python-code`
+  - **Project Loading**: `/wells/list` endpoint loads wells from `10-WELLS` folder (matches `Load_Wells()`)
+  - **Well Details**: `/wells/load` endpoint provides complete well data with datasets (matches `update_datasetbrowser()`)
+  - **Data Browser**: Backend supports showing wells files list, datasets grouped by type, logs/log values/constants
+  - **LAS Upload**: `/wells/create-from-las` uses exact logic from GitHub repo (Dataset.from_las, REFERENCE, WELL_HEADER creation)
+  - All core data objects (Well, Dataset, WellLog, Constant) from `fe_data_objects.py` already integrated
+  - Import/export utilities from `Data_Import_Export.py` available in flask/utils folder
 
 ## System Architecture
 

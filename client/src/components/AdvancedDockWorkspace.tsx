@@ -172,13 +172,33 @@ export default function AdvancedDockWorkspace() {
     }
   }, [theme]);
 
-  // Wells loading disabled - API endpoints removed
-  // useEffect(() => {
-  //   const loadWells = async () => {
-  //     // API endpoint /api/wells/list has been removed
-  //   };
-  //   loadWells();
-  // }, [projectPath]);
+  // Load wells when project path changes
+  useEffect(() => {
+    const loadWells = async () => {
+      if (!projectPath || projectPath === "No path selected") {
+        setWells([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/wells/list?projectPath=${encodeURIComponent(projectPath)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.wells && Array.isArray(data.wells)) {
+            setWells(data.wells);
+            
+            // Auto-select first well if available
+            if (data.wells.length > 0 && !selectedWell) {
+              handleWellSelect(data.wells[0]);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading wells:', error);
+      }
+    };
+    loadWells();
+  }, [projectPath]);
 
   const togglePanel = (panelId: string) => {
     setPanels((prev) => {
@@ -503,6 +523,8 @@ export default function AdvancedDockWorkspace() {
       ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
       ? { onLoadWells: handleLoadWells, projectPath }
+      : panelId === 'dataBrowser'
+      ? { selectedWell }
       : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'
       ? { selectedWell, projectPath }
       : {};

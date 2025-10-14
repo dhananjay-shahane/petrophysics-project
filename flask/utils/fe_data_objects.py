@@ -391,11 +391,15 @@ class Dataset:
             raise ValueError(f"LAS file must contain the column: {index_name}")
 
         index_log = df[index_name].tolist()
+        # Replace NaN values with None in index log
+        index_log = [None if (isinstance(v, float) and math.isnan(v)) else v for v in index_log]
         #df_logs = df.drop(columns=[index_name])
         interp = "CONTINUOUS"
         logs = []
         for col_index, column in enumerate(df.columns):
             log_values = df.iloc[:, col_index].tolist()  # Get values of the current column as a list
+            # Replace NaN values with None to avoid "nan" in JSON
+            log_values = [None if (isinstance(v, float) and math.isnan(v)) else v for v in log_values]
             log_type = 'float'
                 
             well_log = WellLog(
@@ -440,11 +444,15 @@ class Dataset:
             raise ValueError(f"LAS file must contain the column: {index_name}")
 
         index_log = df[index_name].tolist()
+        # Replace NaN values with None in index log
+        index_log = [None if (isinstance(v, float) and math.isnan(v)) else v for v in index_log]
         #df_logs = df.drop(columns=[index_name])
         interp = "CONTINUOUS"
         logs = []
         for col_index, column in enumerate(df.columns):
             log_values = df.iloc[:, col_index].tolist()  # Get values of the current column as a list
+            # Replace NaN values with None to avoid "nan" in JSON
+            log_values = [None if (isinstance(v, float) and math.isnan(v)) else v for v in log_values]
             log_type = 'float'
                 
             well_log = WellLog(
