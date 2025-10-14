@@ -1,5 +1,7 @@
 import os
 import secrets
+import logging
+import sys
 from flask import Flask, send_from_directory, session
 from flask_cors import CORS
 from routes import api
@@ -12,6 +14,13 @@ def create_app():
     # In production, serve static files from dist/public
     static_folder = '../dist/public' if IS_PRODUCTION else None
     app = Flask(__name__, static_folder=static_folder)
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG if not IS_PRODUCTION else logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        stream=sys.stdout
+    )
     
     # Session configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))

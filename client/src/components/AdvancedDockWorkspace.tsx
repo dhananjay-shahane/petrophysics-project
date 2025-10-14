@@ -182,6 +182,7 @@ export default function AdvancedDockWorkspace() {
       setProjectPath(savedProjectPath);
       if (savedProjectName) {
         setProjectName(savedProjectName);
+        (window as any).addAppLog?.(`📁 Opened project: ${savedProjectName}`, 'success', '📁');
       }
       if (savedProjectCreatedAt) {
         setProjectCreatedAt(savedProjectCreatedAt);
@@ -239,6 +240,7 @@ export default function AdvancedDockWorkspace() {
           const data = await response.json();
           if (data.wells && Array.isArray(data.wells)) {
             setWells(data.wells);
+            (window as any).addAppLog?.(`🗂️ Loaded ${data.wells.length} well(s) from project`, 'success', '🗂️');
             
             // Auto-select first well if available
             if (data.wells.length > 0 && !selectedWell) {
@@ -248,6 +250,7 @@ export default function AdvancedDockWorkspace() {
         }
       } catch (error) {
         console.error('Error loading wells:', error);
+        (window as any).addAppLog?.(`⚠️ Error loading wells: ${error}`, 'error', '⚠️');
       }
     };
     loadWells();
@@ -348,6 +351,7 @@ export default function AdvancedDockWorkspace() {
     const folderName = folderPath.split('/').pop() || folderPath;
     setProjectName(folderName);
     setProjectCreatedAt(new Date().toISOString());
+    (window as any).addAppLog?.(`📁 Opened project: ${folderName}`, 'success', '📁');
   };
 
   const handleOpenImportPicker = () => {
@@ -362,6 +366,7 @@ export default function AdvancedDockWorkspace() {
 
   const handleDirectorySelect = (path: string) => {
     if (directoryPickerMode === "import") {
+      (window as any).addAppLog?.(`📂 Import from directory: ${path}`, 'info', '📂');
       toast({
         title: "Import from Directory",
         description: `Selected directory: ${path}`,

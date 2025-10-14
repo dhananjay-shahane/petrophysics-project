@@ -1,6 +1,5 @@
 import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Terminal, Trash2, Upload, FolderOpen } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +9,7 @@ interface LogEntry {
   timestamp: string;
   message: string;
   type: 'info' | 'error' | 'success' | 'warning';
+  icon?: string;
 }
 
 export default function FeedbackPanelNew({ 
@@ -37,7 +37,8 @@ export default function FeedbackPanelNew({
     {
       timestamp: new Date().toLocaleTimeString(),
       message: 'Feedback console initialized',
-      type: 'info'
+      type: 'info',
+      icon: '🔧'
     }
   ]);
   const [lasFile, setLasFile] = useState<File | null>(null);
@@ -47,7 +48,6 @@ export default function FeedbackPanelNew({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Auto-scroll to bottom when new logs are added
     if (scrollRef.current) {
       setTimeout(() => {
         if (scrollRef.current) {
@@ -57,11 +57,12 @@ export default function FeedbackPanelNew({
     }
   }, [logs]);
 
-  const addLog = (message: string, type: LogEntry['type'] = 'info') => {
+  const addLog = (message: string, type: LogEntry['type'] = 'info', icon?: string) => {
     const newLog: LogEntry = {
       timestamp: new Date().toLocaleTimeString(),
       message,
-      type
+      type,
+      icon
     };
     setLogs(prev => [...prev, newLog]);
   };
@@ -70,7 +71,8 @@ export default function FeedbackPanelNew({
     setLogs([{
       timestamp: new Date().toLocaleTimeString(),
       message: 'Logs cleared',
-      type: 'info'
+      type: 'info',
+      icon: '🗑️'
     }]);
   };
 
@@ -87,6 +89,120 @@ export default function FeedbackPanelNew({
     }
   };
 
+  const getIconForMessage = (message: string, type: LogEntry['type']): string => {
+    if (message.includes('project') && message.toLowerCase().includes('open')) return '📁';
+    if (message.includes('LAS') && message.includes('upload')) return '📤';
+    if (message.includes('well') && message.includes('creat')) return '🔧';
+    if (message.includes('[LOG PLOT]')) return '📊';
+    if (message.includes('[CROSS PLOT]')) return '📈';
+    if (message.includes('data') && message.includes('load')) return '🗂️';
+    if (type === 'error') return '⚠️';
+    if (type === 'success') return '✅';
+    if (type === 'warning') return '⚠️';
+    return '📝';
+  };
+
+  useEffect(() => {
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    const originalFetch = window.fetch;
+
+    console.log = (...args) => {
+      originalLog(...args);
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+      
+      if (message.includes('[LOG PLOT]') || message.includes('[CROSS PLOT]') || 
+          message.includes('[LogPlot]') || message.includes('[CrossPlot]') ||
+          message.includes('project') || message.includes('well') || 
+          message.includes('data') || message.includes('upload')) {
+        const icon = getIconForMessage(message, 'info');
+        addLog(message, 'info', icon);
+      }
+    };
+
+    console.error = (...args) => {
+      originalError(...args);
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+      addLog(message, 'error', '⚠️');
+    };
+
+    console.warn = (...args) => {
+      originalWarn(...args);
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+      addLog(message, 'warning', '⚠️');
+    };
+
+    window.fetch = async (...args) => {
+      const startTime = Date.now();
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : args[0]?.toString() || 'unknown');
+      const method = (args[1]?.method || 'GET').toUpperCase();
+      
+      try {
+        const response = await originalFetch(...args);
+        const duration = Date.now() - startTime;
+        
+        const urlPath = url.split('?')[0];
+        let logMessage = `${method} ${urlPath} - ${response.status} (${duration}ms)`;
+        let logType: LogEntry['type'] = 'info';
+        let icon = '🌐';
+
+        if (urlPath.includes('/api/wells/create-from-las')) {
+          logMessage = `📤 LAS Upload Request - ${response.status} (${duration}ms)`;
+          logType = response.ok ? 'success' : 'error';
+          icon = '📤';
+        } else if (urlPath.includes('/log-plot')) {
+          logMessage = `📊 Log Plot Generation - ${response.status} (${duration}ms)`;
+          logType = response.ok ? 'success' : 'error';
+          icon = '📊';
+        } else if (urlPath.includes('/cross-plot')) {
+          logMessage = `📈 Cross Plot Generation - ${response.status} (${duration}ms)`;
+          logType = response.ok ? 'success' : 'error';
+          icon = '📈';
+        } else if (urlPath.includes('/datasets')) {
+          logMessage = `🗂️ Data Loading - ${response.status} (${duration}ms)`;
+          logType = response.ok ? 'success' : 'error';
+          icon = '🗂️';
+        } else if (urlPath.includes('/api/wells')) {
+          logMessage = `🔧 Well Operation - ${response.status} (${duration}ms)`;
+          logType = response.ok ? 'success' : 'error';
+          icon = '🔧';
+        }
+
+        if (!response.ok) {
+          logType = 'error';
+        }
+
+        addLog(logMessage, logType, icon);
+        
+        return response;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        addLog(`❌ ${method} ${url} - Failed (${duration}ms): ${error}`, 'error', '⚠️');
+        throw error;
+      }
+    };
+
+    (window as any).addAppLog = (message: string, type: LogEntry['type'] = 'info', icon?: string) => {
+      const logIcon = icon || getIconForMessage(message, type);
+      addLog(message, type, logIcon);
+    };
+
+    (window as any).addPythonLog = (message: string, type: LogEntry['type'] = 'info') => {
+      const icon = getIconForMessage(message, type);
+      addLog(message, type, icon);
+    };
+
+    return () => {
+      console.log = originalLog;
+      console.error = originalError;
+      console.warn = originalWarn;
+      window.fetch = originalFetch;
+      delete (window as any).addAppLog;
+      delete (window as any).addPythonLog;
+    };
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -99,7 +215,7 @@ export default function FeedbackPanelNew({
         return;
       }
       setLasFile(file);
-      addLog(`File selected: ${file.name}`, 'info');
+      addLog(`File selected: ${file.name}`, 'info', '📂');
     }
   };
 
@@ -123,7 +239,7 @@ export default function FeedbackPanelNew({
     }
 
     setIsUploading(true);
-    addLog('--- Starting LAS upload ---', 'info');
+    addLog('📤 Starting LAS file upload...', 'info', '📤');
 
     try {
       const formData = new FormData();
@@ -137,16 +253,18 @@ export default function FeedbackPanelNew({
 
       const result = await response.json();
 
-      // Display logs
       if (result.logs && Array.isArray(result.logs)) {
         result.logs.forEach((log: any) => {
-          addLog(log.message, log.type);
+          const icon = getIconForMessage(log.message, log.type);
+          addLog(log.message, log.type, icon);
         });
       }
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to create well from LAS file");
       }
+
+      addLog(`✅ Well "${result.well.name}" created successfully`, 'success', '✅');
 
       toast({
         title: "Success",
@@ -159,7 +277,7 @@ export default function FeedbackPanelNew({
       }
     } catch (error: any) {
       const errorMessage = error.message || "Failed to create well from LAS file. Please try again.";
-      addLog(`Upload failed: ${errorMessage}`, 'error');
+      addLog(`❌ Upload failed: ${errorMessage}`, 'error', '⚠️');
       
       toast({
         title: "Error",
@@ -170,14 +288,6 @@ export default function FeedbackPanelNew({
       setIsUploading(false);
     }
   };
-
-  // Expose addLog function globally for API calls
-  useEffect(() => {
-    (window as any).addPythonLog = addLog;
-    return () => {
-      delete (window as any).addPythonLog;
-    };
-  }, []);
 
   return (
     <DockablePanel 
@@ -193,7 +303,6 @@ export default function FeedbackPanelNew({
       onGeometryChange={onGeometryChange}
     >
       <div className="flex flex-col h-full">
-        {/* Upload UI */}
         <div className="px-3 py-2 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2">
             <input
@@ -237,11 +346,10 @@ export default function FeedbackPanelNew({
           </div>
         </div>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Terminal className="w-4 h-4" />
-            <span>Feedback Console</span>
+            <span>System Logs</span>
           </div>
           <Button 
             size="sm" 
@@ -254,7 +362,6 @@ export default function FeedbackPanelNew({
           </Button>
         </div>
         
-        {/* Logs */}
         <div className="flex-1 overflow-hidden">
           <div 
             ref={scrollRef}
@@ -263,6 +370,7 @@ export default function FeedbackPanelNew({
             {logs.map((log, index) => (
               <div key={index} className="mb-1 flex gap-2">
                 <span className="text-slate-500 flex-shrink-0">[{log.timestamp}]</span>
+                {log.icon && <span className="flex-shrink-0">{log.icon}</span>}
                 <span className={getLogColor(log.type)}>{log.message}</span>
               </div>
             ))}
