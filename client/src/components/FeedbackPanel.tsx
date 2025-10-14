@@ -1,6 +1,6 @@
 import DockPanel from "./DockPanel";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,8 @@ export default function FeedbackPanel({
 }) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Intercept console logs and API calls
   useEffect(() => {
@@ -34,6 +36,20 @@ export default function FeedbackPanel({
     const originalLog = console.log;
     const originalError = console.error;
     const originalWarn = console.warn;
+
+    // Listen for custom activity events
+    const handleActivityEvent = (event: CustomEvent) => {
+      const { type, message, level, data } = event.detail;
+      addLog({
+        timestamp: new Date().toLocaleTimeString(),
+        type: type || 'test',
+        level: level || 'info',
+        message: message,
+        data: data,
+      });
+    };
+
+    window.addEventListener('app-activity' as any, handleActivityEvent);
 
     // Override console.log to capture logs
     console.log = (...args) => {
@@ -151,12 +167,20 @@ export default function FeedbackPanel({
       console.error = originalError;
       console.warn = originalWarn;
       window.fetch = originalFetch;
+      window.removeEventListener('app-activity' as any, handleActivityEvent);
     };
   }, []);
 
   const addLog = (log: LogEntry) => {
     setLogs(prev => [log, ...prev].slice(0, 500)); // Keep last 500 logs
   };
+
+  // Auto-scroll to top when new logs arrive (logs are prepended)
+  useEffect(() => {
+    if (autoScroll && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [logs, autoScroll]);
 
   const clearLogs = () => {
     setLogs([]);
@@ -204,9 +228,17 @@ export default function FeedbackPanel({
           </Badge>
           <Button 
             size="sm" 
+            variant={autoScroll ? "default" : "outline"}
+            onClick={() => setAutoScroll(!autoScroll)}
+            className="ml-auto h-7 text-xs"
+          >
+            {autoScroll ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
+          </Button>
+          <Button 
+            size="sm" 
             variant="outline" 
             onClick={clearLogs}
-            className="ml-auto h-7 text-xs"
+            className="h-7 text-xs"
           >
             Clear All
           </Button>
@@ -229,7 +261,7 @@ export default function FeedbackPanel({
           </TabsList>
 
           <TabsContent value="all" className="flex-1 m-0">
-            <ScrollArea className="h-full">
+            <div className="h-full overflow-auto" ref={scrollContainerRef}>
               <div className="p-2 space-y-1">
                 {logs.map((log, index) => (
                   <div
@@ -267,7 +299,7 @@ export default function FeedbackPanel({
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           <TabsContent value="api" className="flex-1 m-0">
