@@ -79,11 +79,11 @@ export default function FeedbackPanelNew({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   localStorage.setItem("feedbackLogs", JSON.stringify(logs));
-  //   scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // }, [logs]);
-
+  useEffect(() => {
+    localStorage.setItem("feedbackLogs", JSON.stringify(logs));
+  }, [logs]);
+  // scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  
   const addLog = (
     message: string,
     type: LogEntry["type"] = "info",

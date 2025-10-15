@@ -136,7 +136,7 @@ export default function DataBrowserPanelNew({
     }
 
     return (
-      <table className="w-full text-sm">
+      <table className="w-full text-sm max-w-24">
         <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border">
           <tr className="h-10">
             <th className="w-8 px-2"></th>
@@ -179,7 +179,7 @@ export default function DataBrowserPanelNew({
     const numReadings = selectedDataset.well_logs[0]?.log?.length || 0;
 
     return (
-      <table className="w-full text-sm">
+      <table className="w-full text-sm max-w-24">
         <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border">
           <tr className="h-10">
             {selectedDataset.well_logs.map((log, index) => (
