@@ -1,9 +1,9 @@
-import DockablePanel from "./DockablePanel";
+import DockablePanel from "../workspace/DockablePanel";
 import { Search, FileText, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import NewWindow from "react-new-window";
-import type { WellData } from "./Workspace";
+import type { WellData } from "../workspace/Workspace";
 
 export default function WellsPanelNew({
   wells = [],

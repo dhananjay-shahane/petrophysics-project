@@ -1,7 +1,7 @@
-import DockablePanel from "./DockablePanel";
+import DockablePanel from "../workspace/DockablePanel";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { WellData } from "./Workspace";
+import { WellData } from "../workspace/Workspace";
 import { ExternalLink } from "lucide-react";
 import NewWindow from "react-new-window";
 

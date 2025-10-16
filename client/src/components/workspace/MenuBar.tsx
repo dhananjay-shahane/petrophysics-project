@@ -12,8 +12,8 @@ import {
 import { Check, Sun, Moon, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import NewProjectDialog from "./NewProjectDialog";
-import DataExplorer from "./DataExplorer";
+import NewProjectDialog from "../dialogs/NewProjectDialog";
+import DataExplorer from "../DataExplorer";
 
 interface MenuBarProps {
   onTogglePanel: (panelId: string) => void;

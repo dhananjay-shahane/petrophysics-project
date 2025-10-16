@@ -1,4 +1,4 @@
-import DockablePanel from "./DockablePanel";
+import DockablePanel from "../workspace/DockablePanel";
 import { Button } from "@/components/ui/button";
 import {
   Terminal,

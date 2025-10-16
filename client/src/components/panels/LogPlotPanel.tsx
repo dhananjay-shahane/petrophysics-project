@@ -1,7 +1,7 @@
 import { useState } from "react";
-import DockablePanel from "./DockablePanel";
+import DockablePanel from "../workspace/DockablePanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import type { WellData } from "./Workspace";
+import type { WellData } from "../workspace/Workspace";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewWindow from "react-new-window";
