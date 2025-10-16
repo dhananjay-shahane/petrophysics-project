@@ -83,11 +83,11 @@ export default function DockablePanel({
           onBlur={() => setIsFocused(false)}
           tabIndex={0}
         >
-          <div className="drag-handle flex items-center justify-between h-10 px-3 py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border cursor-move">
-            <span className="text-sm font-semibold text-foreground dark:text-card-foreground truncate">
+          <div className="drag-handle flex items-center justify-between h-8 md:h-10 px-2 md:px-3 py-1 md:py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border cursor-move">
+            <span className="text-xs md:text-sm font-semibold text-foreground dark:text-card-foreground truncate">
               {title}
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 md:gap-1">
               {headerActions}
               <Button
                 size="icon"
@@ -137,11 +137,11 @@ export default function DockablePanel({
       onBlur={() => setIsFocused(false)}
       tabIndex={0}
     >
-      <div className="flex items-center justify-between h-10 px-3 py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border">
-        <span className="text-sm font-semibold text-foreground dark:text-card-foreground truncate">
+      <div className="flex items-center justify-between h-8 md:h-10 px-2 md:px-3 py-1 md:py-2 bg-secondary dark:bg-card border-b border-border dark:border-card-border">
+        <span className="text-xs md:text-sm font-semibold text-foreground dark:text-card-foreground truncate">
           {title}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 md:gap-1">
           {headerActions}
           <Button
             size="icon"

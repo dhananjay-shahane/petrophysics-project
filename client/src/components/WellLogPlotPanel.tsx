@@ -30,21 +30,14 @@ export default function WellLogPlotPanel({
   onGeometryChange?: (pos: { x: number; y: number }, size: { width: number; height: number }) => void;
 }) {
   const [isNewWindowOpen, setIsNewWindowOpen] = useState(false);
-  const [windowWellData, setWindowWellData] = useState<WellData | null>(null);
-  const [windowProjectPath, setWindowProjectPath] = useState<string>("");
 
   const handleOpenInNewWindow = () => {
     if (!selectedWell) return;
-    
-    setWindowWellData(selectedWell);
-    setWindowProjectPath(projectPath || "");
     setIsNewWindowOpen(true);
   };
 
   const handleCloseNewWindow = () => {
     setIsNewWindowOpen(false);
-    setWindowWellData(null);
-    setWindowProjectPath("");
   };
 
   return (
@@ -77,9 +70,9 @@ export default function WellLogPlotPanel({
         <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
       </DockablePanel>
 
-      {isNewWindowOpen && windowWellData && (
+      {isNewWindowOpen && (
         <NewWindow
-          title={`Well Log Plot - ${windowWellData.name}`}
+          title={`Well Log Plot - ${selectedWell?.name || 'No well selected'}`}
           onUnload={handleCloseNewWindow}
           features={{
             width: 1200,
@@ -89,7 +82,7 @@ export default function WellLogPlotPanel({
           }}
         >
           <div style={{ width: '100%', height: '100vh', overflow: 'auto' }}>
-            <WellLogPlot selectedWell={windowWellData} projectPath={windowProjectPath} />
+            <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
           </div>
         </NewWindow>
       )}

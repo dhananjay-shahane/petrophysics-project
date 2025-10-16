@@ -109,10 +109,10 @@ export default function MenuBar({
 
   return (
     <>
-      <div className="h-10 bg-white dark:bg-card border-b border-border flex items-center justify-between px-2 gap-1">
-        <div className="flex items-center gap-1">
+      <div className="h-10 bg-white dark:bg-card border-b border-border flex items-center justify-between px-1 md:px-2 gap-1">
+        <div className="flex items-center gap-0.5 md:gap-1">
           <DropdownMenu>
-          <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-project">
+          <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-project">
             Project
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">

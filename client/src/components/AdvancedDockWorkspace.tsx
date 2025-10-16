@@ -677,7 +677,7 @@ export default function AdvancedDockWorkspace() {
           wellCount={wells.length}
         />
 
-        <div className="flex-1 relative flex gap-1 p-1">
+        <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1">
           {draggedPanel && (
             <>
               <DropZone id="left" zone="left" isActive={!!draggedPanel} />
@@ -695,7 +695,7 @@ export default function AdvancedDockWorkspace() {
               enable={{ right: true }}
               minWidth={200}
               maxWidth={500}
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-1 w-full md:w-auto"
             >
               {leftPanels.map((panelId) => (
                 <div key={panelId} className="flex-1">
@@ -705,14 +705,14 @@ export default function AdvancedDockWorkspace() {
             </Resizable>
           )}
 
-          <div className="flex-1 flex flex-col gap-1">
+          <div className="flex-1 flex flex-col gap-1 w-full">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
-              <div className="flex-1 flex gap-1">
+              <div className="flex-1 flex flex-col md:flex-row gap-1">
                 <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
                   {centerPanels.length > 0 ? (
                     centerPanels.map((panelId) => <div key={panelId}>{renderPanel(panelId, true)}</div>)
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm px-2">
                       Central Workspace - Drag panels here
                     </div>
                   )}
@@ -727,7 +727,7 @@ export default function AdvancedDockWorkspace() {
                     enable={{ left: true }}
                     minWidth={200}
                     maxWidth={600}
-                    className="flex flex-col gap-1"
+                    className="flex flex-col gap-1 w-full md:w-auto"
                   >
                     {rightPanels.map((panelId) => (
                       <div key={panelId} className="flex-1">
