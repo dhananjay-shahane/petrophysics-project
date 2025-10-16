@@ -15,7 +15,7 @@ import LogPlotPanel from "./LogPlotPanel";
 import { Resizable } from "re-resizable";
 import BottomTaskbar from "./BottomTaskbar";
 import { useToast } from "@/hooks/use-toast";
-import { Layers } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -696,7 +696,7 @@ export default function AdvancedDockWorkspace() {
           />
         </div>
 
-        <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1 overflow-y-auto md:overflow-hidden">
+        <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1 h-full md:overflow-hidden">
           {draggedPanel && (
             <div className="hidden md:block">
               <DropZone id="left" zone="left" isActive={!!draggedPanel} />
@@ -720,7 +720,7 @@ export default function AdvancedDockWorkspace() {
                 fixed md:relative inset-y-0 left-0 z-50 md:z-auto
                 transform transition-transform duration-300 ease-in-out
                 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-                md:flex
+                md:flex h-full
               `}>
                 <Resizable
                   size={{ width: leftPanelWidth, height: "100%" }}
@@ -730,10 +730,20 @@ export default function AdvancedDockWorkspace() {
                   enable={{ right: true }}
                   minWidth={200}
                   maxWidth={500}
-                  className="flex flex-col gap-1 w-[280px] md:w-auto bg-background"
+                  className="flex flex-col gap-1 w-[280px] md:w-auto bg-background h-full relative"
                 >
+                  {/* Mobile Close Button inside sidebar */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-50 md:hidden h-8 w-8 bg-background/80 backdrop-blur-sm"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  
                   {leftPanels.map((panelId) => (
-                    <div key={panelId} className="flex-1">
+                    <div key={panelId} className="flex-1 min-h-0">
                       {renderPanel(panelId, true)}
                     </div>
                   ))}
@@ -742,12 +752,12 @@ export default function AdvancedDockWorkspace() {
             </>
           )}
 
-          <div className="flex-1 flex flex-col gap-1 w-full min-h-0">
+          <div className="flex-1 flex flex-col gap-1 w-full h-full min-h-0">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
-              <div className="flex-1 flex flex-col md:flex-row gap-1 min-h-[400px] md:min-h-0">
-                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
+              <div className="flex-1 flex flex-col md:flex-row gap-1 h-full md:min-h-0">
+                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden h-full">
                   {centerPanels.length > 0 ? (
-                    centerPanels.map((panelId) => <div key={panelId}>{renderPanel(panelId, true)}</div>)
+                    centerPanels.map((panelId) => <div key={panelId} className="h-full">{renderPanel(panelId, true)}</div>)
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm px-2">
                       Central Workspace - Drag panels here
@@ -756,7 +766,7 @@ export default function AdvancedDockWorkspace() {
                 </div>
 
                 {rightPanels.length > 0 && (
-                  <div className="w-full md:w-auto">
+                  <div className="w-full md:w-auto h-full md:h-auto">
                     <Resizable
                       size={{ width: rightPanelWidth, height: "100%" }}
                       onResizeStop={(e, direction, ref, d) => {
@@ -765,10 +775,10 @@ export default function AdvancedDockWorkspace() {
                       enable={{ left: true }}
                       minWidth={200}
                       maxWidth={600}
-                      className="flex flex-col gap-1 w-full md:w-auto"
+                      className="flex flex-col gap-1 w-full md:w-auto h-full"
                     >
                       {rightPanels.map((panelId) => (
-                        <div key={panelId} className="flex-1 min-h-[200px] md:min-h-0">
+                        <div key={panelId} className="flex-1 min-h-0 h-full">
                           {renderPanel(panelId, true)}
                         </div>
                       ))}
@@ -777,13 +787,13 @@ export default function AdvancedDockWorkspace() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden flex items-center justify-center text-muted-foreground">
+              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden flex items-center justify-center text-muted-foreground h-full">
                 Central Workspace - Drag panels here
               </div>
             )}
 
             {bottomPanels.length > 0 && (
-              <div className="w-full">
+              <div className="w-full h-auto md:h-auto">
                 <Resizable
                   size={{ width: "100%", height: bottomPanelHeight }}
                   onResizeStop={(e, direction, ref, d) => {
@@ -795,7 +805,7 @@ export default function AdvancedDockWorkspace() {
                   className="flex gap-1 w-full min-h-[200px] md:min-h-0"
                 >
                   {bottomPanels.map((panelId) => (
-                    <div key={panelId} className="flex-1">
+                    <div key={panelId} className="flex-1 h-full">
                       {renderPanel(panelId, true)}
                     </div>
                   ))}
