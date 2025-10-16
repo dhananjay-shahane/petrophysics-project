@@ -131,7 +131,7 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-file">
+            <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-file">
               File
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -141,8 +141,8 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-petrophysics">
-              Petrophysics
+            <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-petrophysics">
+              <span className="hidden md:inline">Petrophysics</span><span className="md:hidden">Petro</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => toast({ title: "Analysis Tools", description: "Opening analysis tools..." })} data-testid="menu-analysis">Analysis Tools</DropdownMenuItem>
@@ -151,7 +151,7 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-view">
+            <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-view">
               View
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -161,7 +161,7 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-geolog">
+            <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-geolog">
               Geolog
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
@@ -170,7 +170,7 @@ export default function MenuBar({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-1 text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-dock">
+            <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-dock">
               Dock
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
