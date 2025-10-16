@@ -166,6 +166,7 @@ export default function Workspace() {
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [mobilePanelSelectorOpen, setMobilePanelSelectorOpen] = useState(false);
+  const [selectedLogsForPlot, setSelectedLogsForPlot] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -588,14 +589,24 @@ export default function Workspace() {
       onMinimize: () => minimizePanel(panelId),
     };
 
+    const handleGeneratePlotFromDataBrowser = (logNames: string[]) => {
+      console.log('Generating plot for logs:', logNames);
+      // Store selected logs and open the well log plot panel
+      setSelectedLogsForPlot(logNames);
+      setPanels(prev => ({
+        ...prev,
+        wellLogPlot: { ...prev.wellLogPlot, visible: true, minimized: false }
+      }));
+    };
+
     const panelSpecificProps = panelId === 'wells' 
       ? { wells, selectedWell, onWellSelect: handleWellSelect } 
       : panelId === 'feedback' 
       ? { onLoadWells: handleLoadWells, projectPath, selectedWell }
       : panelId === 'dataBrowser'
-      ? { selectedWell }
+      ? { selectedWell, onGeneratePlot: handleGeneratePlotFromDataBrowser }
       : panelId === 'wellLogPlot' || panelId === 'crossPlot' || panelId === 'logPlot'
-      ? { selectedWell, projectPath }
+      ? { selectedWell, projectPath, selectedLogsForPlot }
       : {};
 
     if (panelState.floating) {

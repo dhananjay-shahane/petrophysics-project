@@ -9,6 +9,7 @@ import type { WellData } from "../workspace/Workspace";
 export default function WellLogPlotPanel({ 
   selectedWell,
   projectPath,
+  selectedLogsForPlot,
   onClose,
   onMinimize,
   isFloating,
@@ -20,6 +21,7 @@ export default function WellLogPlotPanel({
 }: { 
   selectedWell?: WellData | null;
   projectPath?: string;
+  selectedLogsForPlot?: string[];
   onClose?: () => void;
   onMinimize?: () => void;
   isFloating?: boolean;
@@ -67,7 +69,7 @@ export default function WellLogPlotPanel({
           </Button>
         }
       >
-        <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
+        <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} initialSelectedLogs={selectedLogsForPlot} />
       </DockablePanel>
 
       {isNewWindowOpen && (
@@ -82,7 +84,7 @@ export default function WellLogPlotPanel({
           }}
         >
           <div style={{ width: '100%', height: '100vh', overflow: 'auto' }}>
-            <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
+            <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} initialSelectedLogs={selectedLogsForPlot} />
           </div>
         </NewWindow>
       )}

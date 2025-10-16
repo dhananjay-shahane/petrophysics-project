@@ -65,6 +65,7 @@ export default function DataBrowserPanelNew({
   );
   const [isNewWindowOpen, setIsNewWindowOpen] = useState(false);
   const [checkedLogs, setCheckedLogs] = useState<Set<string>>(new Set());
+  const [checkedConstants, setCheckedConstants] = useState<Set<string>>(new Set());
 
   const DATASET_COLORS = {
     Special: "bg-orange-100 dark:bg-orange-900/30",
@@ -143,6 +144,39 @@ export default function DataBrowserPanelNew({
 
   const handleDatasetClick = (dataset: Dataset) => {
     setSelectedDataset(dataset);
+    setCheckedLogs(new Set());
+    setCheckedConstants(new Set());
+  };
+
+  const handleLogCheckboxChange = (logName: string) => {
+    setCheckedLogs((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(logName)) {
+        newSet.delete(logName);
+      } else {
+        newSet.add(logName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleConstantCheckboxChange = (constantName: string) => {
+    setCheckedConstants((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(constantName)) {
+        newSet.delete(constantName);
+      } else {
+        newSet.add(constantName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGeneratePlot = () => {
+    const selectedLogNames = Array.from(checkedLogs);
+    if (selectedLogNames.length > 0 && onGeneratePlot) {
+      onGeneratePlot(selectedLogNames);
+    }
   };
 
   const renderLogsTab = () => {
@@ -183,7 +217,12 @@ export default function DataBrowserPanelNew({
           {selectedDataset.well_logs.map((log, index) => (
             <tr key={index} className="border-b border-border hover:bg-accent">
               <td className="px-2">
-                <input type="checkbox" className="cursor-pointer" />
+                <input 
+                  type="checkbox" 
+                  className="cursor-pointer" 
+                  checked={checkedLogs.has(log.name)}
+                  onChange={() => handleLogCheckboxChange(log.name)}
+                />
               </td>
               <td className="px-4 py-2 text-foreground">{log.name}</td>
               <td className="px-4 py-2 text-foreground">{log.date}</td>
@@ -275,7 +314,12 @@ export default function DataBrowserPanelNew({
           {selectedDataset.constants.map((constant, index) => (
             <tr key={index} className="border-b border-border hover:bg-accent">
               <td className="px-2">
-                <input type="checkbox" className="cursor-pointer" />
+                <input 
+                  type="checkbox" 
+                  className="cursor-pointer"
+                  checked={checkedConstants.has(constant.name)}
+                  onChange={() => handleConstantCheckboxChange(constant.name)}
+                />
               </td>
               <td className="px-4 py-2 text-foreground">{constant.name}</td>
               <td className="px-4 py-2 text-foreground">{constant.value}</td>
@@ -367,6 +411,15 @@ export default function DataBrowserPanelNew({
           </Button>
           <Button size="sm" variant="outline">
             Export
+          </Button>
+          <Button 
+            size="sm" 
+            variant="default"
+            onClick={handleGeneratePlot}
+            disabled={checkedLogs.size === 0}
+            className="ml-auto"
+          >
+            Generate Plot ({checkedLogs.size})
           </Button>
         </div>
 

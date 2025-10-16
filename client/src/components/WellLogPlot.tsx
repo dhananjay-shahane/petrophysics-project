@@ -14,11 +14,13 @@ interface WellLogPlotProps {
     projectPath?: string;
   } | null;
   projectPath?: string;
+  initialSelectedLogs?: string[];
 }
 
 export default function WellLogPlot({
   selectedWell,
   projectPath,
+  initialSelectedLogs,
 }: WellLogPlotProps) {
   const [plotImage, setPlotImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,16 +125,22 @@ export default function WellLogPlot({
         console.log("[WellLogPlot] Continuous logs found:", logs.length, logs);
         setAvailableLogs(logs);
 
-        // Auto-select first 3 logs and auto-generate plot
+        // Use initialSelectedLogs if provided, otherwise auto-select first 3 logs
         if (logs.length > 0) {
-          const logsToPlot = logs.slice(0, 3).map((l: Dataset) => l.name);
+          let logsToPlot: string[];
+          
+          if (initialSelectedLogs && initialSelectedLogs.length > 0) {
+            // Use logs from Data Browser
+            logsToPlot = initialSelectedLogs;
+            console.log("[WellLogPlot] Using logs from Data Browser:", logsToPlot);
+          } else {
+            // Auto-select first 3 logs
+            logsToPlot = logs.slice(0, 3).map((l: Dataset) => l.name);
+            console.log("[WellLogPlot] Auto-selecting first 3 logs:", logsToPlot);
+          }
+          
           setSelectedLogs(logsToPlot);
-
-          console.log(
-            "[WellLogPlot] Auto-generating plot for logs:",
-            logsToPlot,
-          );
-          // Auto-generate plot
+          console.log("[WellLogPlot] Generating plot for logs:", logsToPlot);
           generatePlot(wellId, path, logsToPlot);
         } else {
           console.log(
@@ -146,7 +154,7 @@ export default function WellLogPlot({
     };
 
     fetchAvailableLogs();
-  }, [selectedWell, projectPath]);
+  }, [selectedWell, projectPath, initialSelectedLogs]);
 
   const toggleLog = (logName: string) => {
     const newSelectedLogs = selectedLogs.includes(logName)
