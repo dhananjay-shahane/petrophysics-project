@@ -667,33 +667,36 @@ export default function AdvancedDockWorkspace() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className="h-screen w-full flex flex-col bg-[#F0F4F5] dark:bg-background overflow-hidden">
-        <MenuBar
-          onTogglePanel={togglePanel}
-          visiblePanels={visiblePanels}
-          onSaveLayout={saveLayout}
-          onLoadLayout={loadLayout}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          projectPath={projectPath}
-          wellCount={wells.length}
-          onProjectPathChange={handleProjectFolderSelect}
-          onSaveProject={saveProjectData}
-          onOpenProjectList={() => setProjectListOpen(true)}
-          onOpenImportPicker={handleOpenImportPicker}
-          onOpenProjectPicker={handleOpenProjectPicker}
-          onNewWell={handleOpenNewWellDialog}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-        />
-        
-        <ProjectInfoBar 
-          projectPath={projectPath}
-          projectName={projectName}
-          wellCount={wells.length}
-        />
+      <div className="h-screen w-full flex flex-col bg-[#F0F4F5] dark:bg-background">
+        {/* Sticky Menu Bar */}
+        <div className="sticky top-0 z-50 bg-white dark:bg-card">
+          <MenuBar
+            onTogglePanel={togglePanel}
+            visiblePanels={visiblePanels}
+            onSaveLayout={saveLayout}
+            onLoadLayout={loadLayout}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            projectPath={projectPath}
+            wellCount={wells.length}
+            onProjectPathChange={handleProjectFolderSelect}
+            onSaveProject={saveProjectData}
+            onOpenProjectList={() => setProjectListOpen(true)}
+            onOpenImportPicker={handleOpenImportPicker}
+            onOpenProjectPicker={handleOpenProjectPicker}
+            onNewWell={handleOpenNewWellDialog}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            isMobileSidebarOpen={isMobileSidebarOpen}
+          />
+          
+          <ProjectInfoBar 
+            projectPath={projectPath}
+            projectName={projectName}
+            wellCount={wells.length}
+          />
+        </div>
 
-        <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1">
+        <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1 overflow-y-auto md:overflow-hidden">
           {draggedPanel && (
             <div className="hidden md:block">
               <DropZone id="left" zone="left" isActive={!!draggedPanel} />
@@ -739,9 +742,9 @@ export default function AdvancedDockWorkspace() {
             </>
           )}
 
-          <div className="flex-1 flex flex-col gap-1 w-full">
+          <div className="flex-1 flex flex-col gap-1 w-full min-h-0">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
-              <div className="flex-1 flex flex-col md:flex-row gap-1">
+              <div className="flex-1 flex flex-col md:flex-row gap-1 min-h-[400px] md:min-h-0">
                 <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden">
                   {centerPanels.length > 0 ? (
                     centerPanels.map((panelId) => <div key={panelId}>{renderPanel(panelId, true)}</div>)
@@ -753,7 +756,7 @@ export default function AdvancedDockWorkspace() {
                 </div>
 
                 {rightPanels.length > 0 && (
-                  <div className="hidden md:block">
+                  <div className="w-full md:w-auto">
                     <Resizable
                       size={{ width: rightPanelWidth, height: "100%" }}
                       onResizeStop={(e, direction, ref, d) => {
@@ -762,10 +765,10 @@ export default function AdvancedDockWorkspace() {
                       enable={{ left: true }}
                       minWidth={200}
                       maxWidth={600}
-                      className="flex flex-col gap-1"
+                      className="flex flex-col gap-1 w-full md:w-auto"
                     >
                       {rightPanels.map((panelId) => (
-                        <div key={panelId} className="flex-1">
+                        <div key={panelId} className="flex-1 min-h-[200px] md:min-h-0">
                           {renderPanel(panelId, true)}
                         </div>
                       ))}
@@ -780,7 +783,7 @@ export default function AdvancedDockWorkspace() {
             )}
 
             {bottomPanels.length > 0 && (
-              <div className="hidden md:block">
+              <div className="w-full">
                 <Resizable
                   size={{ width: "100%", height: bottomPanelHeight }}
                   onResizeStop={(e, direction, ref, d) => {
@@ -789,7 +792,7 @@ export default function AdvancedDockWorkspace() {
                   enable={{ top: true }}
                   minHeight={100}
                   maxHeight={400}
-                  className="flex gap-1"
+                  className="flex gap-1 w-full min-h-[200px] md:min-h-0"
                 >
                   {bottomPanels.map((panelId) => (
                     <div key={panelId} className="flex-1">
@@ -874,6 +877,20 @@ export default function AdvancedDockWorkspace() {
           open={directoryPickerOpen}
           onOpenChange={setDirectoryPickerOpen}
           onSelectPath={handleDirectorySelect}
+          initialPath={projectPath}
+          currentProjectPath={projectPath}
+          onProjectDeleted={() => {
+            setProjectPath("");
+            setProjectName("");
+            setWells([]);
+            localStorage.removeItem('lastProjectPath');
+            localStorage.removeItem('lastProjectName');
+            localStorage.removeItem('lastProjectCreatedAt');
+            toast({
+              title: "Project Deleted",
+              description: "The current project has been deleted. Please select a new project.",
+            });
+          }}
         />
 
         <NewWellDialog

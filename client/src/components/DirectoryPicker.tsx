@@ -34,6 +34,8 @@ interface DirectoryPickerProps {
   onOpenChange: (open: boolean) => void;
   onSelectPath: (path: string) => void;
   initialPath?: string;
+  currentProjectPath?: string;
+  onProjectDeleted?: () => void;
 }
 
 interface Directory {
@@ -53,6 +55,8 @@ export default function DirectoryPicker({
   onOpenChange,
   onSelectPath,
   initialPath,
+  currentProjectPath,
+  onProjectDeleted,
 }: DirectoryPickerProps) {
   // Support multiple OS paths with fallback
   const getWorkspaceRoot = () => {
@@ -159,10 +163,50 @@ export default function DirectoryPicker({
   useEffect(() => {
     if (open) {
       const pathToLoad = initialPath || workspaceRoot;
-      // Try alternative paths if initial path fails
-      loadDirectories(pathToLoad, true);
+      
+      // If initialPath is provided and it's a project folder (not workspace root),
+      // navigate to parent directory
+      if (initialPath && initialPath !== workspaceRoot && initialPath !== "") {
+        // Normalize path separators (handle both / and \)
+        const normalizedPath = initialPath.replace(/\\/g, '/');
+        const pathParts = normalizedPath.split('/').filter(p => p);
+        
+        // Construct parent path preserving the leading separator
+        const isAbsolutePath = normalizedPath.startsWith('/');
+        const parentPathParts = pathParts.slice(0, -1);
+        const parentPath = (isAbsolutePath ? '/' : '') + parentPathParts.join('/');
+        
+        if (parentPath && parentPath !== normalizedPath && parentPathParts.length > 0) {
+          // Load parent directory (selection will happen in separate effect)
+          loadDirectories(parentPath, true);
+        } else {
+          // If we can't determine parent, just load the path
+          loadDirectories(pathToLoad, true);
+        }
+      } else {
+        // Try alternative paths if initial path fails
+        loadDirectories(pathToLoad, true);
+      }
     }
   }, [open]);
+
+  // Separate effect to select the project folder after directories are loaded
+  useEffect(() => {
+    if (open && initialPath && initialPath !== workspaceRoot && initialPath !== "" && directories.length > 0) {
+      // Normalize path and extract folder name
+      const normalizedPath = initialPath.replace(/\\/g, '/');
+      const pathParts = normalizedPath.split('/').filter(p => p);
+      const folderName = pathParts[pathParts.length - 1];
+      
+      const projectFolder = directories.find(dir => 
+        dir.name === folderName || dir.path === initialPath || dir.path === normalizedPath
+      );
+      
+      if (projectFolder) {
+        setSelectedFolderForPick(projectFolder);
+      }
+    }
+  }, [open, initialPath, directories]);
 
   const handleSelectDirectory = (dirPath: string) => {
     loadDirectories(dirPath);
@@ -244,6 +288,10 @@ export default function DirectoryPicker({
   const handleDeleteFolder = async () => {
     if (!selectedFolder) return;
 
+    const isCurrentProject = currentProjectPath && 
+      (selectedFolder.path === currentProjectPath || 
+       currentProjectPath.startsWith(selectedFolder.path + '/'));
+
     setIsDeleting(true);
     try {
       const response = await fetch("/api/directories/delete", {
@@ -265,6 +313,11 @@ export default function DirectoryPicker({
         title: "Success",
         description: "Folder deleted successfully",
       });
+
+      // If the deleted folder is the current project, notify parent to reload
+      if (isCurrentProject && onProjectDeleted) {
+        onProjectDeleted();
+      }
 
       setShowDeleteDialog(false);
       setSelectedFolder(null);
@@ -344,26 +397,27 @@ export default function DirectoryPicker({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[60%]">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-[60vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Select Folder</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Select Folder</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Click to select a folder, double-click to navigate into it
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center gap-2">
+          <div className="grid gap-3 sm:gap-4 py-2 sm:py-4">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleGoUp}
                 disabled={isLoading || !canGoUp}
                 title="Go up one level"
+                className="h-8 w-8 p-0 shrink-0"
               >
-                <ArrowUp className="w-4 h-4" />
+                <ArrowUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
-              <div className="flex-1 px-3 py-2 bg-muted rounded-md font-mono text-xs truncate">
+              <div className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-muted rounded-md font-mono text-[10px] sm:text-xs truncate">
                 {currentPath === workspaceRoot 
                   ? "petrophysics-workplace" 
                   : currentPath.replace(workspaceRoot + "/", "")}
@@ -374,28 +428,29 @@ export default function DirectoryPicker({
                 onClick={() => setShowCreateDialog(true)}
                 disabled={isLoading}
                 title="Create new folder"
+                className="h-8 px-2 sm:px-3 shrink-0"
               >
-                <FolderPlus className="w-4 h-4 mr-2" />
-                New Folder
+                <FolderPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">New Folder</span>
               </Button>
             </div>
 
-            <ScrollArea className="h-[350px] border rounded-md">
-              <div className="p-4">
+            <ScrollArea className="h-[250px] sm:h-[350px] border rounded-md">
+              <div className="p-2 sm:p-4">
                 {isLoading ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-xs sm:text-sm">
                     Loading directories...
                   </div>
                 ) : directories.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No folders found</p>
-                    <p className="text-sm mt-1">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                    <Folder className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
+                    <p className="text-xs sm:text-sm">No folders found</p>
+                    <p className="text-[10px] sm:text-sm mt-1">
                       Create a new folder to get started
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
                     {directories.map((dir) => (
                       <ContextMenu key={dir.path}>
                         <ContextMenuTrigger>
@@ -403,8 +458,8 @@ export default function DirectoryPicker({
                             onClick={() => handleFolderClick(dir)}
                             onDoubleClick={() => handleFolderDoubleClick(dir)}
                             className={`
-                              flex flex-col items-center gap-2 p-2 text-center 
-                              rounded-xl transition-all duration-200 w-full min-h-[100px]
+                              flex flex-col items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-center 
+                              rounded-lg sm:rounded-xl transition-all duration-200 w-full min-h-[80px] sm:min-h-[100px]
                               ${selectedFolderForPick?.path === dir.path 
                                 ? 'bg-primary/10 border-2 border-primary shadow-lg scale-105' 
                                 : 'bg-background hover:bg-accent border-2 border-transparent hover:border-primary/20'
@@ -412,14 +467,14 @@ export default function DirectoryPicker({
                             `}
                           >
                             <div className={`
-                              p-3 rounded-full transition-colors
+                              p-2 sm:p-3 rounded-full transition-colors
                               ${selectedFolderForPick?.path === dir.path 
                                 ? 'bg-primary/20' 
                                 : 'bg-blue-500/10'
                               }
                             `}>
                               <Folder className={`
-                                w-12 h-12 flex-shrink-0 transition-colors
+                                w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0 transition-colors
                                 ${selectedFolderForPick?.path === dir.path 
                                   ? 'text-primary' 
                                   : 'text-blue-500'
@@ -428,7 +483,7 @@ export default function DirectoryPicker({
                             </div>
                             <span
                               className={`
-                                text-sm font-medium w-full break-words line-clamp-2
+                                text-xs sm:text-sm font-medium w-full break-words line-clamp-2
                                 ${selectedFolderForPick?.path === dir.path 
                                   ? 'text-primary font-semibold' 
                                   : ''
@@ -463,15 +518,16 @@ export default function DirectoryPicker({
             </ScrollArea>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              className="w-full sm:w-auto text-xs sm:text-sm"
             >
               Cancel
             </Button>
-            <Button onClick={handleConfirm} disabled={isLoading}>
+            <Button onClick={handleConfirm} disabled={isLoading} className="w-full sm:w-auto text-xs sm:text-sm">
               {selectedFolderForPick ? `Select "${selectedFolderForPick.name}"` : 'Select Current Folder'}
             </Button>
           </DialogFooter>
