@@ -41,6 +41,7 @@ export default function DataBrowserPanelNew({
   savedSize,
   onGeometryChange,
   selectedWell,
+  onGeneratePlot,
 }: {
   onClose?: () => void;
   onMinimize?: () => void;
@@ -54,6 +55,7 @@ export default function DataBrowserPanelNew({
     size: { width: number; height: number },
   ) => void;
   selectedWell?: WellData | null;
+  onGeneratePlot?: (logNames: string[]) => void;
 }) {
   const [activeTab, setActiveTab] = useState("logs");
   const [datasets, setDatasets] = useState<Dataset[]>([]);
@@ -62,6 +64,7 @@ export default function DataBrowserPanelNew({
     new Set(["Special", "Point", "Continuous"]),
   );
   const [isNewWindowOpen, setIsNewWindowOpen] = useState(false);
+  const [checkedLogs, setCheckedLogs] = useState<Set<string>>(new Set());
 
   const DATASET_COLORS = {
     Special: "bg-orange-100 dark:bg-orange-900/30",
