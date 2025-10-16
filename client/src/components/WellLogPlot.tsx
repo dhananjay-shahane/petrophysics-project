@@ -181,25 +181,25 @@ export default function WellLogPlot({
   return (
     <div className="w-full h-full flex flex-col bg-background">
       {/* Control Panel */}
-      <div className="border-b p-4 space-y-3">
+      <div className="border-b p-2 sm:p-4 space-y-2 sm:space-y-3 shrink-0">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">
+          <h3 className="text-sm sm:text-base font-semibold truncate">
             Well: {selectedWell.well_name || selectedWell.name}
           </h3>
         </div>
 
         {/* Log Selection */}
         {availableLogs.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-1 sm:space-y-2">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Select logs to plot:
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 sm:gap-2">
               {availableLogs.map((log) => (
                 <button
                   key={log.name}
                   onClick={() => toggleLog(log.name)}
-                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs rounded-md border transition-colors ${
                     selectedLogs.includes(log.name)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background hover:bg-accent border-border"
@@ -214,36 +214,37 @@ export default function WellLogPlot({
       </div>
 
       {/* Plot Display Area */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-2 sm:p-4">
         {isLoading && (
           <div className="w-full h-full flex items-center justify-center">
-            <p className="text-muted-foreground">Generating plot...</p>
+            <p className="text-sm text-muted-foreground">Generating plot...</p>
           </div>
         )}
 
         {error && (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center text-destructive">
-              <p className="text-lg font-medium">Error</p>
-              <p className="text-sm mt-2">{error}</p>
+            <div className="text-center text-destructive px-2">
+              <p className="text-base sm:text-lg font-medium">Error</p>
+              <p className="text-xs sm:text-sm mt-2">{error}</p>
             </div>
           </div>
         )}
 
         {!isLoading && !error && !plotImage && selectedLogs.length === 0 && (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-muted-foreground">
+          <div className="w-full h-full flex items-center justify-center px-2">
+            <p className="text-xs sm:text-sm text-muted-foreground text-center">
               Select at least one log to view the plot
             </p>
           </div>
         )}
 
         {!isLoading && plotImage && (
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full">
             <img
               src={`data:image/png;base64,${plotImage}`}
               alt="Well Log Plot"
-              className="max-w-full h-auto max-h-[400px]"
+              className="w-full h-auto object-contain"
+              style={{ maxHeight: 'calc(100vh - 200px)' }}
             />
           </div>
         )}
