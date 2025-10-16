@@ -15,6 +15,15 @@ import LogPlotPanel from "./LogPlotPanel";
 import { Resizable } from "re-resizable";
 import BottomTaskbar from "./BottomTaskbar";
 import { useToast } from "@/hooks/use-toast";
+import { Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 type PanelId = "wells" | "zonation" | "dataBrowser" | "feedback" | "wellLogPlot" | "crossPlot" | "logPlot";
 
@@ -156,6 +165,7 @@ export default function AdvancedDockWorkspace() {
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [mobilePanelSelectorOpen, setMobilePanelSelectorOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -685,12 +695,12 @@ export default function AdvancedDockWorkspace() {
 
         <div className="flex-1 relative flex flex-col md:flex-row gap-1 p-1">
           {draggedPanel && (
-            <>
+            <div className="hidden md:block">
               <DropZone id="left" zone="left" isActive={!!draggedPanel} />
               <DropZone id="right" zone="right" isActive={!!draggedPanel} />
               <DropZone id="bottom" zone="bottom" isActive={!!draggedPanel} />
               <DropZone id="center" zone="center" isActive={!!draggedPanel} />
-            </>
+            </div>
           )}
           {leftPanels.length > 0 && (
             <>
@@ -743,22 +753,24 @@ export default function AdvancedDockWorkspace() {
                 </div>
 
                 {rightPanels.length > 0 && (
-                  <Resizable
-                    size={{ width: rightPanelWidth, height: "100%" }}
-                    onResizeStop={(e, direction, ref, d) => {
-                      setRightPanelWidth(rightPanelWidth + d.width);
-                    }}
-                    enable={{ left: true }}
-                    minWidth={200}
-                    maxWidth={600}
-                    className="flex flex-col gap-1 w-full md:w-auto"
-                  >
-                    {rightPanels.map((panelId) => (
-                      <div key={panelId} className="flex-1">
-                        {renderPanel(panelId, true)}
-                      </div>
-                    ))}
-                  </Resizable>
+                  <div className="hidden md:block">
+                    <Resizable
+                      size={{ width: rightPanelWidth, height: "100%" }}
+                      onResizeStop={(e, direction, ref, d) => {
+                        setRightPanelWidth(rightPanelWidth + d.width);
+                      }}
+                      enable={{ left: true }}
+                      minWidth={200}
+                      maxWidth={600}
+                      className="flex flex-col gap-1"
+                    >
+                      {rightPanels.map((panelId) => (
+                        <div key={panelId} className="flex-1">
+                          {renderPanel(panelId, true)}
+                        </div>
+                      ))}
+                    </Resizable>
+                  </div>
                 )}
               </div>
             ) : (
@@ -768,22 +780,24 @@ export default function AdvancedDockWorkspace() {
             )}
 
             {bottomPanels.length > 0 && (
-              <Resizable
-                size={{ width: "100%", height: bottomPanelHeight }}
-                onResizeStop={(e, direction, ref, d) => {
-                  setBottomPanelHeight(bottomPanelHeight + d.height);
-                }}
-                enable={{ top: true }}
-                minHeight={100}
-                maxHeight={400}
-                className="flex gap-1"
-              >
-                {bottomPanels.map((panelId) => (
-                  <div key={panelId} className="flex-1">
-                    {renderPanel(panelId, true)}
-                  </div>
-                ))}
-              </Resizable>
+              <div className="hidden md:block">
+                <Resizable
+                  size={{ width: "100%", height: bottomPanelHeight }}
+                  onResizeStop={(e, direction, ref, d) => {
+                    setBottomPanelHeight(bottomPanelHeight + d.height);
+                  }}
+                  enable={{ top: true }}
+                  minHeight={100}
+                  maxHeight={400}
+                  className="flex gap-1"
+                >
+                  {bottomPanels.map((panelId) => (
+                    <div key={panelId} className="flex-1">
+                      {renderPanel(panelId, true)}
+                    </div>
+                  ))}
+                </Resizable>
+              </div>
             )}
           </div>
 
@@ -796,6 +810,44 @@ export default function AdvancedDockWorkspace() {
           minimizedPanels={minimizedPanels} 
           onMaximize={(id) => maximizePanel(id as PanelId)} 
         />
+
+        {/* Mobile Panel Selector Button */}
+        <Button
+          className="fixed bottom-20 right-4 md:hidden z-40 h-14 w-14 rounded-full shadow-lg"
+          onClick={() => setMobilePanelSelectorOpen(true)}
+        >
+          <Layers className="h-6 w-6" />
+        </Button>
+
+        {/* Mobile Panel Selector Sheet */}
+        <Sheet open={mobilePanelSelectorOpen} onOpenChange={setMobilePanelSelectorOpen}>
+          <SheetContent side="bottom" className="h-[60vh]">
+            <SheetHeader>
+              <SheetTitle>All Panels</SheetTitle>
+              <SheetDescription>
+                Select a panel to view
+              </SheetDescription>
+            </SheetHeader>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              {Object.entries(PANEL_TITLES).map(([id, title]) => (
+                <Button
+                  key={id}
+                  variant={visiblePanels.has(id) ? "default" : "outline"}
+                  className="h-20 flex flex-col items-center justify-center gap-2"
+                  onClick={() => {
+                    togglePanel(id as PanelId);
+                    setMobilePanelSelectorOpen(false);
+                  }}
+                >
+                  <span className="font-semibold">{title}</span>
+                  {visiblePanels.has(id) && (
+                    <span className="text-xs opacity-75">Active</span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <ProjectListDialog
           open={projectListOpen}

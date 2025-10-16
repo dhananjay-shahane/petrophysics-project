@@ -54,7 +54,9 @@ export default function DockablePanel({
         minHeight={200}
         bounds="parent"
         dragHandleClassName="drag-handle"
-        className="absolute z-50"
+        className="absolute z-50 hidden md:block"
+        disableDragging={false}
+        enableResizing={true}
         onDragStop={(e, d) => {
           onGeometryChange?.(
             { x: d.x, y: d.y },
@@ -146,7 +148,7 @@ export default function DockablePanel({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6"
+            className="h-6 w-6 hidden md:flex"
             onClick={onMinimize}
             data-testid={`button-minimize-${id}`}
           >
@@ -156,7 +158,7 @@ export default function DockablePanel({
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6"
+              className="h-6 w-6 hidden md:flex"
               onClick={onFloat}
               data-testid={`button-float-${id}`}
             >
