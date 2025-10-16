@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { parseResponse, handleApiError } from "@/lib/api-utils";
 
 interface Dataset {
   name: string;
@@ -50,12 +51,23 @@ export default function WellLogPlot({
         },
       );
 
+      const contentType = response.headers.get("content-type");
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate plot");
+        let errorMessage = "Failed to generate plot";
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } else {
+          const text = await response.text();
+          errorMessage = `Server error: ${text.substring(0, 200)}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const data = contentType && contentType.includes("application/json")
+        ? await response.json()
+        : { error: "Invalid response format" };
       setPlotImage(data.image);
     } catch (err: any) {
       console.error("Error generating plot:", err);
@@ -97,10 +109,10 @@ export default function WellLogPlot({
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch datasets");
+          await handleApiError(response);
         }
 
-        const data = await response.json();
+        const data = await parseResponse<{ datasets: Dataset[] }>(response);
         console.log("[WellLogPlot] Datasets response:", data);
 
         const logs =

@@ -4,12 +4,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AdvancedDockWorkspace from "@/components/AdvancedDockWorkspace";
+import WellLogPlotWindow from "@/pages/WellLogPlotWindow";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={AdvancedDockWorkspace} />
+      <Route path="/plot" component={WellLogPlotWindow} />
       <Route component={NotFound} />
     </Switch>
   );

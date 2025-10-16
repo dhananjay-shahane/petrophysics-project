@@ -78,14 +78,21 @@ export default function DataBrowserPanelNew({
         const response = await fetch(
           `/api/wells/data?wellPath=${encodeURIComponent(selectedWell.path)}`,
         );
-        if (response.ok) {
+        
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
           const data = await response.json();
-          if (data.datasets && Array.isArray(data.datasets)) {
+          if (response.ok && data.datasets && Array.isArray(data.datasets)) {
             setDatasets(data.datasets);
             if (data.datasets.length > 0) {
               setSelectedDataset(data.datasets[0]);
             }
+          } else if (!response.ok) {
+            console.error("Error loading well data:", data.error || "Unknown error");
           }
+        } else {
+          const text = await response.text();
+          console.error("Error loading well data: Server returned non-JSON response", text.substring(0, 100));
         }
       } catch (error) {
         console.error("Error loading well data:", error);
@@ -140,12 +147,12 @@ export default function DataBrowserPanelNew({
         <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border">
           <tr className="h-10">
             <th className="w-8 px-2"></th>
-            <th className="px-4 py-2 text-left font-semibold">Name</th>
-            <th className="px-4 py-2 text-left font-semibold">Date</th>
-            <th className="px-4 py-2 text-left font-semibold">Description</th>
-            <th className="px-4 py-2 text-left font-semibold">DTST</th>
-            <th className="px-4 py-2 text-left font-semibold">Interpolation</th>
-            <th className="px-4 py-2 text-left font-semibold">Type</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Name</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Date</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Description</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">DTST</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Interpolation</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Type</th>
           </tr>
         </thead>
         <tbody>
@@ -154,12 +161,12 @@ export default function DataBrowserPanelNew({
               <td className="px-2">
                 <input type="checkbox" className="cursor-pointer" />
               </td>
-              <td className="px-4 py-2">{log.name}</td>
-              <td className="px-4 py-2">{log.date}</td>
-              <td className="px-4 py-2">{log.description}</td>
-              <td className="px-4 py-2">{log.dtst}</td>
-              <td className="px-4 py-2">{log.interpolation}</td>
-              <td className="px-4 py-2">{log.log_type}</td>
+              <td className="px-4 py-2 text-foreground">{log.name}</td>
+              <td className="px-4 py-2 text-foreground">{log.date}</td>
+              <td className="px-4 py-2 text-foreground">{log.description}</td>
+              <td className="px-4 py-2 text-foreground">{log.dtst}</td>
+              <td className="px-4 py-2 text-foreground">{log.interpolation}</td>
+              <td className="px-4 py-2 text-foreground">{log.log_type}</td>
             </tr>
           ))}
         </tbody>
@@ -185,7 +192,7 @@ export default function DataBrowserPanelNew({
             {selectedDataset.well_logs.map((log, index) => (
               <th
                 key={index}
-                className="px-4 py-2 text-left font-semibold border-r border-border"
+                className="px-4 py-2 text-left font-semibold text-foreground border-r border-border"
               >
                 {log.name}
               </th>
@@ -199,7 +206,7 @@ export default function DataBrowserPanelNew({
               className="border-b border-border hover:bg-accent"
             >
               {selectedDataset.well_logs.map((log, colIndex) => (
-                <td key={colIndex} className="px-4 py-2 border-r border-border">
+                <td key={colIndex} className="px-4 py-2 text-foreground border-r border-border">
                   {log.log[rowIndex] !== null && log.log[rowIndex] !== undefined
                     ? log.log[rowIndex]
                     : "-"}
@@ -226,9 +233,9 @@ export default function DataBrowserPanelNew({
         <thead className="sticky top-0 bg-muted dark:bg-card border-b border-border">
           <tr className="h-10">
             <th className="w-8 px-2"></th>
-            <th className="px-4 py-2 text-left font-semibold">Name</th>
-            <th className="px-4 py-2 text-left font-semibold">Value</th>
-            <th className="px-4 py-2 text-left font-semibold">Tag</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Name</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Value</th>
+            <th className="px-4 py-2 text-left font-semibold text-foreground">Tag</th>
           </tr>
         </thead>
         <tbody>
@@ -237,9 +244,9 @@ export default function DataBrowserPanelNew({
               <td className="px-2">
                 <input type="checkbox" className="cursor-pointer" />
               </td>
-              <td className="px-4 py-2">{constant.name}</td>
-              <td className="px-4 py-2">{constant.value}</td>
-              <td className="px-4 py-2">{constant.tag}</td>
+              <td className="px-4 py-2 text-foreground">{constant.name}</td>
+              <td className="px-4 py-2 text-foreground">{constant.value}</td>
+              <td className="px-4 py-2 text-foreground">{constant.tag}</td>
             </tr>
           ))}
         </tbody>
@@ -273,7 +280,7 @@ export default function DataBrowserPanelNew({
               <div key={type} className="mb-2">
                 <button
                   onClick={() => toggleType(type)}
-                  className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || "bg-gray-100"}`}
+                  className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between text-foreground ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || "bg-gray-100"}`}
                 >
                   <span>{type}</span>
                   <span>{expandedTypes.has(type) ? "▼" : "▶"}</span>
@@ -287,7 +294,7 @@ export default function DataBrowserPanelNew({
                         className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
                           selectedDataset === dataset
                             ? "bg-primary text-primary-foreground"
-                            : "hover:bg-accent"
+                            : "hover:bg-accent text-foreground"
                         }`}
                       >
                         {dataset.name}

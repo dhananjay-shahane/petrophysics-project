@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DockablePanel from "./DockablePanel";
 import type { WellData } from "./AdvancedDockWorkspace";
+import { parseResponse, handleApiError } from "@/lib/api-utils";
 
 interface Dataset {
   name: string;
@@ -56,12 +57,23 @@ export default function CrossPlotPanel({
         })
       });
       
+      const contentType = response.headers.get("content-type");
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate cross plot');
+        let errorMessage = 'Failed to generate cross plot';
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } else {
+          const text = await response.text();
+          errorMessage = `Server error: ${text.substring(0, 200)}`;
+        }
+        throw new Error(errorMessage);
       }
       
-      const data = await response.json();
+      const data = contentType && contentType.includes("application/json") 
+        ? await response.json()
+        : { error: 'Invalid response format' };
       setPlotImage(data.image);
       
     } catch (err: any) {
@@ -90,10 +102,10 @@ export default function CrossPlotPanel({
         const response = await fetch(`/api/wells/datasets?projectPath=${encodeURIComponent(path)}&wellName=${encodeURIComponent(wellId)}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch datasets');
+          await handleApiError(response);
         }
         
-        const data = await response.json();
+        const data = await parseResponse<{ datasets: Dataset[] }>(response);
         const logs = data.datasets?.filter((d: Dataset) => d.type === 'Cont' || d.type === 'continuous') || [];
         setAvailableLogs(logs);
         

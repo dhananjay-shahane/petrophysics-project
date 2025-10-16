@@ -327,13 +327,22 @@ export default function FeedbackPanelNew({
         body: formData,
       });
 
-      const result = await response.json();
-
-      if (result.logs && Array.isArray(result.logs)) {
-        result.logs.forEach((log: any) => {
-          const icon = getIconForMessage(log.message, log.type);
-          addLog(log.message, log.type, icon);
-        });
+      const contentType = response.headers.get("content-type");
+      let result: any = {};
+      
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+        
+        if (result.logs && Array.isArray(result.logs)) {
+          result.logs.forEach((log: any) => {
+            const icon = getIconForMessage(log.message, log.type);
+            addLog(log.message, log.type, icon);
+          });
+        }
+      } else {
+        const text = await response.text();
+        addLog(`Server error: ${text.substring(0, 200)}`, "error", "⚠️");
+        throw new Error("Server returned an error. Check feedback logs for details.");
       }
 
       if (!response.ok) {
