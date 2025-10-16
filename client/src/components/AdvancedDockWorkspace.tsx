@@ -732,11 +732,11 @@ export default function AdvancedDockWorkspace() {
                   maxWidth={500}
                   className="flex flex-col gap-1 w-[280px] md:w-auto bg-background h-full relative"
                 >
-                  {/* Mobile Close Button inside sidebar - Left side */}
+                  {/* Mobile Close Button inside sidebar */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 left-2 z-50 md:hidden h-8 w-8 bg-background/80 backdrop-blur-sm"
+                    className="absolute top-2 right-2 z-50 md:hidden h-8 w-8 bg-background/80 backdrop-blur-sm"
                     onClick={() => setIsMobileSidebarOpen(false)}
                   >
                     <X className="h-4 w-4" />
@@ -754,11 +754,10 @@ export default function AdvancedDockWorkspace() {
 
           <div className="flex-1 flex flex-col gap-1 w-full h-full min-h-0">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
-              <div className="flex-1 flex flex-col md:flex-row gap-1 h-full min-h-0">
-                {/* Center Panel - Full height on mobile */}
-                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden h-full w-full">
+              <div className="flex-1 flex flex-col md:flex-row gap-1 h-full md:min-h-0">
+                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden h-full">
                   {centerPanels.length > 0 ? (
-                    centerPanels.map((panelId) => <div key={panelId} className="h-full w-full">{renderPanel(panelId, true)}</div>)
+                    centerPanels.map((panelId) => <div key={panelId} className="h-full">{renderPanel(panelId, true)}</div>)
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm px-2">
                       Central Workspace - Drag panels here
@@ -766,9 +765,8 @@ export default function AdvancedDockWorkspace() {
                   )}
                 </div>
 
-                {/* Right Panel - Full height and width on mobile */}
                 {rightPanels.length > 0 && (
-                  <div className="w-full md:w-auto h-full">
+                  <div className="w-full md:w-auto h-full md:h-auto">
                     <Resizable
                       size={{ width: rightPanelWidth, height: "100%" }}
                       onResizeStop={(e, direction, ref, d) => {
@@ -780,7 +778,7 @@ export default function AdvancedDockWorkspace() {
                       className="flex flex-col gap-1 w-full md:w-auto h-full"
                     >
                       {rightPanels.map((panelId) => (
-                        <div key={panelId} className="flex-1 h-full w-full min-h-0">
+                        <div key={panelId} className="flex-1 min-h-0 h-full">
                           {renderPanel(panelId, true)}
                         </div>
                       ))}
@@ -789,13 +787,13 @@ export default function AdvancedDockWorkspace() {
                 )}
               </div>
             ) : (
-              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden flex items-center justify-center text-muted-foreground h-full w-full">
+              <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden flex items-center justify-center text-muted-foreground h-full">
                 Central Workspace - Drag panels here
               </div>
             )}
 
             {bottomPanels.length > 0 && (
-              <div className="w-full h-full md:h-auto">
+              <div className="w-full h-auto md:h-auto">
                 <Resizable
                   size={{ width: "100%", height: bottomPanelHeight }}
                   onResizeStop={(e, direction, ref, d) => {
@@ -804,10 +802,10 @@ export default function AdvancedDockWorkspace() {
                   enable={{ top: true }}
                   minHeight={100}
                   maxHeight={400}
-                  className="flex gap-1 w-full h-full md:h-auto"
+                  className="flex gap-1 w-full min-h-[200px] md:min-h-0"
                 >
                   {bottomPanels.map((panelId) => (
-                    <div key={panelId} className="flex-1 h-full w-full">
+                    <div key={panelId} className="flex-1 h-full">
                       {renderPanel(panelId, true)}
                     </div>
                   ))}
