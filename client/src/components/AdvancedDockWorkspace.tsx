@@ -155,6 +155,7 @@ export default function AdvancedDockWorkspace() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(280);
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(200);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -629,6 +630,9 @@ export default function AdvancedDockWorkspace() {
   const handleWellSelect = async (well: WellData) => {
     setSelectedWell(well);
     
+    // Close mobile sidebar when well is selected
+    setIsMobileSidebarOpen(false);
+    
     // If well data is not loaded yet, fetch it
     if (!well.data && well.path) {
       try {
@@ -669,6 +673,8 @@ export default function AdvancedDockWorkspace() {
           onOpenImportPicker={handleOpenImportPicker}
           onOpenProjectPicker={handleOpenProjectPicker}
           onNewWell={handleOpenNewWellDialog}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          isMobileSidebarOpen={isMobileSidebarOpen}
         />
         
         <ProjectInfoBar 
@@ -687,22 +693,40 @@ export default function AdvancedDockWorkspace() {
             </>
           )}
           {leftPanels.length > 0 && (
-            <Resizable
-              size={{ width: leftPanelWidth, height: "100%" }}
-              onResizeStop={(e, direction, ref, d) => {
-                setLeftPanelWidth(leftPanelWidth + d.width);
-              }}
-              enable={{ right: true }}
-              minWidth={200}
-              maxWidth={500}
-              className="flex flex-col gap-1 w-full md:w-auto"
-            >
-              {leftPanels.map((panelId) => (
-                <div key={panelId} className="flex-1">
-                  {renderPanel(panelId, true)}
-                </div>
-              ))}
-            </Resizable>
+            <>
+              {/* Mobile Sidebar Overlay */}
+              {isMobileSidebarOpen && (
+                <div 
+                  className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                />
+              )}
+              
+              {/* Desktop Sidebar - Hidden on mobile unless toggled */}
+              <div className={`
+                fixed md:relative inset-y-0 left-0 z-50 md:z-auto
+                transform transition-transform duration-300 ease-in-out
+                ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                md:flex
+              `}>
+                <Resizable
+                  size={{ width: leftPanelWidth, height: "100%" }}
+                  onResizeStop={(e, direction, ref, d) => {
+                    setLeftPanelWidth(leftPanelWidth + d.width);
+                  }}
+                  enable={{ right: true }}
+                  minWidth={200}
+                  maxWidth={500}
+                  className="flex flex-col gap-1 w-[280px] md:w-auto bg-background"
+                >
+                  {leftPanels.map((panelId) => (
+                    <div key={panelId} className="flex-1">
+                      {renderPanel(panelId, true)}
+                    </div>
+                  ))}
+                </Resizable>
+              </div>
+            </>
           )}
 
           <div className="flex-1 flex flex-col gap-1 w-full">

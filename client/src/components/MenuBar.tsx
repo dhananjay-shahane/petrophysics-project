@@ -9,7 +9,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, Sun, Moon } from "lucide-react";
+import { Check, Sun, Moon, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import NewProjectDialog from "./NewProjectDialog";
@@ -30,6 +30,8 @@ interface MenuBarProps {
   onOpenImportPicker?: () => void;
   onOpenProjectPicker?: () => void;
   onNewWell?: () => void;
+  onToggleMobileSidebar?: () => void;
+  isMobileSidebarOpen?: boolean;
 }
 
 export default function MenuBar({
@@ -47,6 +49,8 @@ export default function MenuBar({
   onOpenImportPicker,
   onOpenProjectPicker,
   onNewWell,
+  onToggleMobileSidebar,
+  isMobileSidebarOpen,
 }: MenuBarProps) {
   const { toast } = useToast();
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
@@ -111,6 +115,16 @@ export default function MenuBar({
     <>
       <div className="h-10 bg-white dark:bg-card border-b border-border flex items-center justify-between px-1 md:px-2 gap-1">
         <div className="flex items-center gap-0.5 md:gap-1">
+          {/* Mobile Sidebar Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-8 w-8"
+            onClick={onToggleMobileSidebar}
+          >
+            {isMobileSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </Button>
+          
           <DropdownMenu>
           <DropdownMenuTrigger className="px-2 md:px-3 py-1 text-xs md:text-sm font-medium text-foreground hover-elevate rounded" data-testid="menu-project">
             Project
