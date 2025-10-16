@@ -20,6 +20,7 @@ interface DockablePanelProps {
     position: { x: number; y: number },
     size: { width: number; height: number }
   ) => void;
+  headerActions?: ReactNode;
 }
 
 export default function DockablePanel({
@@ -36,6 +37,7 @@ export default function DockablePanel({
   savedPosition,
   savedSize,
   onGeometryChange,
+  headerActions,
 }: DockablePanelProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -86,6 +88,7 @@ export default function DockablePanel({
               {title}
             </span>
             <div className="flex items-center gap-1">
+              {headerActions}
               <Button
                 size="icon"
                 variant="ghost"
@@ -139,6 +142,7 @@ export default function DockablePanel({
           {title}
         </span>
         <div className="flex items-center gap-1">
+          {headerActions}
           <Button
             size="icon"
             variant="ghost"

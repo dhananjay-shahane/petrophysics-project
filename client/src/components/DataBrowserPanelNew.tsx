@@ -2,6 +2,8 @@ import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { WellData } from "./AdvancedDockWorkspace";
+import { ExternalLink } from "lucide-react";
+import NewWindow from "react-new-window";
 
 interface WellLog {
   name: string;
@@ -59,6 +61,7 @@ export default function DataBrowserPanelNew({
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
     new Set(["Special", "Point", "Continuous"]),
   );
+  const [isNewWindowOpen, setIsNewWindowOpen] = useState(false);
 
   const DATASET_COLORS = {
     Special: "bg-orange-100 dark:bg-orange-900/30",
@@ -254,100 +257,142 @@ export default function DataBrowserPanelNew({
     );
   };
 
-  return (
-    <DockablePanel
-      id="dataBrowser"
-      title="Data Browser"
-      onClose={onClose}
-      onMinimize={onMinimize}
-      isFloating={isFloating}
-      onDock={onDock}
-      onFloat={onFloat}
-      savedPosition={savedPosition}
-      savedSize={savedSize}
-      onGeometryChange={onGeometryChange}
-    >
-      <div className="flex h-full max-h-[600px] overflow-scroll">
-        <div className="w-64 border-r border-border bg-muted dark:bg-card/50 flex flex-col">
-          <div className="p-3 border-b border-border">
-            <div className="text-sm font-medium text-foreground">
-              {selectedWell?.name || "No well selected"}
-            </div>
-          </div>
+  const handleOpenInNewWindow = () => {
+    setIsNewWindowOpen(true);
+  };
 
-          <div className="flex-1 overflow-auto p-2">
-            {Object.entries(groupedDatasets).map(([type, typeDatasets]) => (
-              <div key={type} className="mb-2">
-                <button
-                  onClick={() => toggleType(type)}
-                  className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between text-foreground ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || "bg-gray-100"}`}
-                >
-                  <span>{type}</span>
-                  <span>{expandedTypes.has(type) ? "▼" : "▶"}</span>
-                </button>
-                {expandedTypes.has(type) && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    {typeDatasets.map((dataset, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleDatasetClick(dataset)}
-                        className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                          selectedDataset === dataset
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-accent text-foreground"
-                        }`}
-                      >
-                        {dataset.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            {datasets.length === 0 && (
-              <div className="text-sm text-muted-foreground p-3">
-                No datasets available
-              </div>
-            )}
+  const handleCloseNewWindow = () => {
+    setIsNewWindowOpen(false);
+  };
+
+  const dataBrowserContent = (
+    <div className="flex h-full max-h-[600px] overflow-scroll">
+      <div className="w-64 border-r border-border bg-muted dark:bg-card/50 flex flex-col">
+        <div className="p-3 border-b border-border">
+          <div className="text-sm font-medium text-foreground">
+            {selectedWell?.name || "No well selected"}
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex h-10 bg-secondary dark:bg-card border-b border-border shrink-0">
-            {tabs.map((tab) => (
+        <div className="flex-1 overflow-auto p-2">
+          {Object.entries(groupedDatasets).map(([type, typeDatasets]) => (
+            <div key={type} className="mb-2">
               <button
-                key={tab.id}
-                className={`px-6 py-2 text-sm font-medium border-r border-border transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-white dark:bg-background text-foreground"
-                    : "text-muted-foreground hover:bg-accent"
-                }`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => toggleType(type)}
+                className={`w-full text-left px-3 py-2 rounded font-medium text-sm flex items-center justify-between text-foreground ${DATASET_COLORS[type as keyof typeof DATASET_COLORS] || "bg-gray-100"}`}
               >
-                {tab.label}
+                <span>{type}</span>
+                <span>{expandedTypes.has(type) ? "▼" : "▶"}</span>
               </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 p-2 bg-muted dark:bg-card/30 border-b border-border shrink-0">
-            <Button size="sm" variant="outline">
-              Delete
-            </Button>
-            <Button size="sm" variant="outline">
-              Add
-            </Button>
-            <Button size="sm" variant="outline">
-              Export
-            </Button>
-          </div>
-
-          <div className="flex-1 overflow-auto bg-white dark:bg-background min-h-0">
-            {activeTab === "logs" && renderLogsTab()}
-            {activeTab === "logValues" && renderLogValuesTab()}
-            {activeTab === "constants" && renderConstantsTab()}
-          </div>
+              {expandedTypes.has(type) && (
+                <div className="ml-4 mt-1 space-y-1">
+                  {typeDatasets.map((dataset, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDatasetClick(dataset)}
+                      className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                        selectedDataset === dataset
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-accent text-foreground"
+                      }`}
+                    >
+                      {dataset.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {datasets.length === 0 && (
+            <div className="text-sm text-muted-foreground p-3">
+              No datasets available
+            </div>
+          )}
         </div>
       </div>
-    </DockablePanel>
+
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex h-10 bg-secondary dark:bg-card border-b border-border shrink-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`px-6 py-2 text-sm font-medium border-r border-border transition-colors ${
+                activeTab === tab.id
+                  ? "bg-white dark:bg-background text-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 p-2 bg-muted dark:bg-card/30 border-b border-border shrink-0">
+          <Button size="sm" variant="outline">
+            Delete
+          </Button>
+          <Button size="sm" variant="outline">
+            Add
+          </Button>
+          <Button size="sm" variant="outline">
+            Export
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-auto bg-white dark:bg-background min-h-0">
+          {activeTab === "logs" && renderLogsTab()}
+          {activeTab === "logValues" && renderLogValuesTab()}
+          {activeTab === "constants" && renderConstantsTab()}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <DockablePanel
+        id="dataBrowser"
+        title="Data Browser"
+        onClose={onClose}
+        onMinimize={onMinimize}
+        isFloating={isFloating}
+        onDock={onDock}
+        onFloat={onFloat}
+        savedPosition={savedPosition}
+        savedSize={savedSize}
+        onGeometryChange={onGeometryChange}
+        headerActions={
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleOpenInNewWindow}
+            className="h-6 w-6"
+            title="Open in New Window"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        }
+      >
+        {dataBrowserContent}
+      </DockablePanel>
+
+      {isNewWindowOpen && (
+        <NewWindow
+          title="Data Browser"
+          onUnload={handleCloseNewWindow}
+          features={{
+            width: 1000,
+            height: 700,
+            left: (window.screen.width - 1000) / 2,
+            top: (window.screen.height - 700) / 2
+          }}
+        >
+          <div style={{ width: '100%', height: '100vh', overflow: 'auto' }}>
+            {dataBrowserContent}
+          </div>
+        </NewWindow>
+      )}
+    </>
   );
 }

@@ -1,9 +1,10 @@
 import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
-import { Terminal, Trash2, Upload, FolderOpen } from "lucide-react";
+import { Terminal, Trash2, Upload, FolderOpen, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import NewWindow from "react-new-window";
 
 interface LogEntry {
   timestamp: string;
@@ -78,6 +79,7 @@ export default function FeedbackPanelNew({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
+  const [isNewWindowOpen, setIsNewWindowOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("feedbackLogs", JSON.stringify(logs));
@@ -380,100 +382,142 @@ export default function FeedbackPanelNew({
     }
   };
 
-  return (
-    <DockablePanel
-      id="feedback"
-      title="Feedback Logs"
-      onClose={onClose}
-      onMinimize={onMinimize}
-      isFloating={isFloating}
-      onDock={onDock}
-      onFloat={onFloat}
-      savedPosition={savedPosition}
-      savedSize={savedSize}
-      onGeometryChange={onGeometryChange}
-    >
-      <div className="flex flex-col h-full">
-        <div className="px-3 py-2 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".las,.LAS"
-              onChange={handleFileChange}
-              className="hidden"
-              id="las-upload"
-            />
-            <label htmlFor="las-upload" className="cursor-pointer">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8"
-                asChild
-                disabled={isUploading}
-              >
-                <span>
-                  <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-                  Choose LAS File
-                </span>
-              </Button>
-            </label>
+  const handleOpenInNewWindow = () => {
+    setIsNewWindowOpen(true);
+  };
 
-            {lasFile && (
-              <span className="text-xs text-muted-foreground truncate flex-1">
-                {lasFile.name}
-              </span>
-            )}
+  const handleCloseNewWindow = () => {
+    setIsNewWindowOpen(false);
+  };
 
+  const feedbackContent = (
+    <div className="flex flex-col h-full">
+      <div className="px-3 py-2 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".las,.LAS"
+            onChange={handleFileChange}
+            className="hidden"
+            id="las-upload"
+          />
+          <label htmlFor="las-upload" className="cursor-pointer">
             <Button
               size="sm"
-              onClick={handleUpload}
-              disabled={!lasFile || isUploading}
+              variant="outline"
               className="h-8"
+              asChild
+              disabled={isUploading}
             >
-              <Upload className="w-3.5 h-3.5 mr-1.5" />
-              {isUploading ? "Uploading..." : "Upload"}
+              <span>
+                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                Choose LAS File
+              </span>
             </Button>
-          </div>
-        </div>
+          </label>
 
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4" />
-              <span>System Logs</span>
-            </div>
-            {selectedWell && (
-              <div className="flex items-center gap-2 text-xs bg-slate-800 px-2 py-1 rounded">
-                <span className="text-blue-400">🔹</span>
-                <span className="text-slate-300">{selectedWell.name}</span>
-              </div>
-            )}
-          </div>
-          <Button size="sm" variant="ghost" onClick={clearLogs} className="h-7">
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-            Clear
+          {lasFile && (
+            <span className="text-xs text-muted-foreground truncate flex-1">
+              {lasFile.name}
+            </span>
+          )}
+
+          <Button
+            size="sm"
+            onClick={handleUpload}
+            disabled={!lasFile || isUploading}
+            className="h-8"
+          >
+            <Upload className="w-3.5 h-3.5 mr-1.5" />
+            {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-hidden max-h-[400px]">
-          <div
-            ref={scrollRef}
-            className="h-full max-h-[400px] overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
-          >
-            {logs.map((log, index) => (
-              <div key={index} className="mb-1 flex gap-2">
-                <span className="text-slate-500 flex-shrink-0">
-                  [{log.timestamp}]
-                </span>
-                {log.icon && <span className="flex-shrink-0">{log.icon}</span>}
-                <span className={getLogColor(log.type)}>{log.message}</span>
-              </div>
-            ))}
-            <div ref={scrollEndRef} />
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4" />
+            <span>System Logs</span>
           </div>
+          {selectedWell && (
+            <div className="flex items-center gap-2 text-xs bg-slate-800 px-2 py-1 rounded">
+              <span className="text-blue-400">🔹</span>
+              <span className="text-slate-300">{selectedWell.name}</span>
+            </div>
+          )}
+        </div>
+        <Button size="sm" variant="ghost" onClick={clearLogs} className="h-7">
+          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+          Clear
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-hidden max-h-[400px]">
+        <div
+          ref={scrollRef}
+          className="h-full max-h-[400px] overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
+        >
+          {logs.map((log, index) => (
+            <div key={index} className="mb-1 flex gap-2">
+              <span className="text-slate-500 flex-shrink-0">
+                [{log.timestamp}]
+              </span>
+              {log.icon && <span className="flex-shrink-0">{log.icon}</span>}
+              <span className={getLogColor(log.type)}>{log.message}</span>
+            </div>
+          ))}
+          <div ref={scrollEndRef} />
         </div>
       </div>
-    </DockablePanel>
+    </div>
+  );
+
+  return (
+    <>
+      <DockablePanel
+        id="feedback"
+        title="Feedback Logs"
+        onClose={onClose}
+        onMinimize={onMinimize}
+        isFloating={isFloating}
+        onDock={onDock}
+        onFloat={onFloat}
+        savedPosition={savedPosition}
+        savedSize={savedSize}
+        onGeometryChange={onGeometryChange}
+        headerActions={
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleOpenInNewWindow}
+            className="h-6 w-6"
+            title="Open in New Window"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        }
+      >
+        {feedbackContent}
+      </DockablePanel>
+
+      {isNewWindowOpen && (
+        <NewWindow
+          title="Feedback Logs"
+          onUnload={handleCloseNewWindow}
+          features={{
+            width: 800,
+            height: 600,
+            left: (window.screen.width - 800) / 2,
+            top: (window.screen.height - 600) / 2
+          }}
+        >
+          <div style={{ width: '100%', height: '100vh', overflow: 'auto' }}>
+            {feedbackContent}
+          </div>
+        </NewWindow>
+      )}
+    </>
   );
 }

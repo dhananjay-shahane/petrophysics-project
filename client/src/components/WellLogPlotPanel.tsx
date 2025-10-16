@@ -61,27 +61,20 @@ export default function WellLogPlotPanel({
         savedSize={savedSize}
         onGeometryChange={onGeometryChange}
         defaultSize={{ width: 1000, height: 700 }}
+        headerActions={
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleOpenInNewWindow}
+            disabled={!selectedWell}
+            className="h-6 w-6"
+            title="Open in New Window"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        }
       >
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-            <h3 className="text-sm font-medium text-foreground">
-              {selectedWell?.name || 'No well selected'}
-            </h3>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleOpenInNewWindow}
-              disabled={!selectedWell}
-              className="h-7 gap-1.5"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Open in New Window
-            </Button>
-          </div>
-          <div className="flex-1 overflow-auto">
-            <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
-          </div>
-        </div>
+        <WellLogPlot selectedWell={selectedWell} projectPath={projectPath} />
       </DockablePanel>
 
       {isNewWindowOpen && windowWellData && (
