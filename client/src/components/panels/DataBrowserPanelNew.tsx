@@ -156,6 +156,15 @@ export default function DataBrowserPanelNew({
       } else {
         newSet.add(logName);
       }
+      console.log('[DataBrowser] Checked logs:', Array.from(newSet));
+      
+      // Auto-generate plot when logs are selected
+      const selectedLogNames = Array.from(newSet);
+      if (selectedLogNames.length > 0 && onGeneratePlot) {
+        console.log('[DataBrowser] Auto-generating plot for:', selectedLogNames);
+        onGeneratePlot(selectedLogNames);
+      }
+      
       return newSet;
     });
   };
@@ -174,8 +183,11 @@ export default function DataBrowserPanelNew({
 
   const handleGeneratePlot = () => {
     const selectedLogNames = Array.from(checkedLogs);
+    console.log('[DataBrowser] Generate plot clicked with logs:', selectedLogNames);
     if (selectedLogNames.length > 0 && onGeneratePlot) {
       onGeneratePlot(selectedLogNames);
+    } else {
+      console.log('[DataBrowser] Cannot generate: no logs selected or no callback');
     }
   };
 
@@ -411,15 +423,6 @@ export default function DataBrowserPanelNew({
           </Button>
           <Button size="sm" variant="outline">
             Export
-          </Button>
-          <Button 
-            size="sm" 
-            variant="default"
-            onClick={handleGeneratePlot}
-            disabled={checkedLogs.size === 0}
-            className="ml-auto"
-          >
-            Generate Plot ({checkedLogs.size})
           </Button>
         </div>
 
