@@ -132,7 +132,7 @@ function DropZone({ id, zone, isActive }: { id: string; zone: string; isActive: 
   );
 }
 
-export default function AdvancedDockWorkspace() {
+export default function Workspace() {
   const { toast } = useToast();
   const [panels, setPanels] = useState<Record<PanelId, PanelState>>({
     wells: { visible: true, floating: false, minimized: false, dockZone: "left" },

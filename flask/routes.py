@@ -57,7 +57,8 @@ def validate_path(path_str):
             if os.path.splitdrive(resolved)[0].lower() != os.path.splitdrive(workspace)[0].lower():
                 return False
         return resolved.startswith(workspace)
-    except:
+    except (OSError, ValueError, TypeError) as e:
+        # Handle path-related errors (file not found, invalid path, type errors)
         return False
 
 # Project Management Routes

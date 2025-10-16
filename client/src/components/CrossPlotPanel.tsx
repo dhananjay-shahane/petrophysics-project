@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DockablePanel from "./DockablePanel";
-import type { WellData } from "./AdvancedDockWorkspace";
+import type { WellData } from "./Workspace";
 import { parseResponse, handleApiError } from "@/lib/api-utils";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";

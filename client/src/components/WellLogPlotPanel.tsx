@@ -4,7 +4,7 @@ import WellLogPlot from "./WellLogPlot";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewWindow from "react-new-window";
-import type { WellData } from "./AdvancedDockWorkspace";
+import type { WellData } from "./Workspace";
 
 export default function WellLogPlotPanel({ 
   selectedWell,
