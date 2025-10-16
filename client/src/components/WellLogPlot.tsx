@@ -52,7 +52,7 @@ export default function WellLogPlot({
       );
 
       const contentType = response.headers.get("content-type");
-      
+
       if (!response.ok) {
         let errorMessage = "Failed to generate plot";
         if (contentType && contentType.includes("application/json")) {
@@ -65,9 +65,10 @@ export default function WellLogPlot({
         throw new Error(errorMessage);
       }
 
-      const data = contentType && contentType.includes("application/json")
-        ? await response.json()
-        : { error: "Invalid response format" };
+      const data =
+        contentType && contentType.includes("application/json")
+          ? await response.json()
+          : { error: "Invalid response format" };
       setPlotImage(data.image);
     } catch (err: any) {
       console.error("Error generating plot:", err);
@@ -244,7 +245,7 @@ export default function WellLogPlot({
               src={`data:image/png;base64,${plotImage}`}
               alt="Well Log Plot"
               className="w-full h-auto object-contain"
-              style={{ maxHeight: 'calc(100vh - 200px)' }}
+              style={{ maxHeight: "calc(100vh - 500px)" }}
             />
           </div>
         )}

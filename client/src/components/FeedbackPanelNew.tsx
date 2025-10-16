@@ -1,11 +1,11 @@
 import DockablePanel from "./DockablePanel";
 import { Button } from "@/components/ui/button";
-import { 
-  Terminal, 
-  Trash2, 
-  Upload, 
-  FolderOpen, 
-  ExternalLink, 
+import {
+  Terminal,
+  Trash2,
+  Upload,
+  FolderOpen,
+  ExternalLink,
   AlertCircle,
   CheckCircle,
   Info,
@@ -16,7 +16,7 @@ import {
   Database,
   Wrench,
   Folder,
-  Globe
+  Globe,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -100,9 +100,9 @@ export default function FeedbackPanelNew({
 
   useEffect(() => {
     localStorage.setItem("feedbackLogs", JSON.stringify(logs));
+    // scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
-  // scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  
+
   const addLog = (
     message: string,
     type: LogEntry["type"] = "info",
@@ -164,19 +164,31 @@ export default function FeedbackPanelNew({
   const getIconComponent = (iconType?: string) => {
     const iconClass = "w-4 h-4 shrink-0";
     switch (iconType) {
-      case "folder": return <Folder className={iconClass} />;
-      case "upload": return <Upload className={iconClass} />;
-      case "wrench": return <Wrench className={iconClass} />;
-      case "barchart": return <BarChart3 className={iconClass} />;
-      case "trending": return <TrendingUp className={iconClass} />;
-      case "database": return <Database className={iconClass} />;
-      case "globe": return <Globe className={iconClass} />;
-      case "error": return <AlertCircle className={iconClass} />;
-      case "success": return <CheckCircle className={iconClass} />;
-      case "warning": return <AlertTriangle className={iconClass} />;
-      case "trash": return <Trash2 className={iconClass} />;
-      case "info": 
-      default: return <Info className={iconClass} />;
+      case "folder":
+        return <Folder className={iconClass} />;
+      case "upload":
+        return <Upload className={iconClass} />;
+      case "wrench":
+        return <Wrench className={iconClass} />;
+      case "barchart":
+        return <BarChart3 className={iconClass} />;
+      case "trending":
+        return <TrendingUp className={iconClass} />;
+      case "database":
+        return <Database className={iconClass} />;
+      case "globe":
+        return <Globe className={iconClass} />;
+      case "error":
+        return <AlertCircle className={iconClass} />;
+      case "success":
+        return <CheckCircle className={iconClass} />;
+      case "warning":
+        return <AlertTriangle className={iconClass} />;
+      case "trash":
+        return <Trash2 className={iconClass} />;
+      case "info":
+      default:
+        return <Info className={iconClass} />;
     }
   };
 
@@ -368,10 +380,10 @@ export default function FeedbackPanelNew({
 
       const contentType = response.headers.get("content-type");
       let result: any = {};
-      
+
       if (contentType && contentType.includes("application/json")) {
         result = await response.json();
-        
+
         if (result.logs && Array.isArray(result.logs)) {
           result.logs.forEach((log: any) => {
             const iconType = getIconForMessage(log.message, log.type);
@@ -381,7 +393,9 @@ export default function FeedbackPanelNew({
       } else {
         const text = await response.text();
         addLog(`Server error: ${text.substring(0, 200)}`, "error", "error");
-        throw new Error("Server returned an error. Check feedback logs for details.");
+        throw new Error(
+          "Server returned an error. Check feedback logs for details.",
+        );
       }
 
       if (!response.ok) {
@@ -491,17 +505,21 @@ export default function FeedbackPanelNew({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-hidden max-h-[400px]">
+      <div className="flex-1 overflow-scroll h-full max-h-[500px]">
         <div
           ref={scrollRef}
-          className="h-full max-h-[400px] overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
+          className="h-full overflow-y-auto p-3 font-mono text-xs bg-slate-950 text-slate-300"
         >
           {logs.map((log, index) => (
             <div key={index} className="mb-1 flex gap-2 items-center">
               <span className="text-slate-500 flex-shrink-0">
                 [{log.timestamp}]
               </span>
-              {log.iconType && <span className="flex-shrink-0">{getIconComponent(log.iconType)}</span>}
+              {log.iconType && (
+                <span className="flex-shrink-0">
+                  {getIconComponent(log.iconType)}
+                </span>
+              )}
               <span className={getLogColor(log.type)}>{log.message}</span>
             </div>
           ))}
@@ -547,10 +565,10 @@ export default function FeedbackPanelNew({
             width: 800,
             height: 600,
             left: (window.screen.width - 800) / 2,
-            top: (window.screen.height - 600) / 2
+            top: (window.screen.height - 600) / 2,
           }}
         >
-          <div style={{ width: '100%', height: '100vh', overflow: 'auto' }}>
+          <div style={{ width: "100%", height: "100vh", overflow: "auto" }}>
             {feedbackContent}
           </div>
         </NewWindow>
