@@ -308,6 +308,11 @@ export default function NewWellDialog({
                   <li>Data will be saved in JSON format in the 10-WELLS folder</li>
                   <li>LAS file will be copied to 02-INPUT_LAS_FOLDER</li>
                 </ul>
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="font-semibold text-foreground">📊 File Size Limits:</p>
+                  <p className="text-muted-foreground mt-1">• Recommended: Up to 50 MB for optimal performance</p>
+                  <p className="text-muted-foreground">• Maximum: 500 MB (larger files may take longer to process)</p>
+                </div>
               </div>
             )}
 
