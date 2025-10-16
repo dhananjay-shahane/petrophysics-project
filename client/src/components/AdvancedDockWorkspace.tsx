@@ -736,7 +736,7 @@ export default function AdvancedDockWorkspace() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 z-50 md:hidden h-8 w-8 bg-background/80 backdrop-blur-sm"
+                    className="absolute top-2 left-2 z-50 md:hidden h-8 w-8 bg-background/80 backdrop-blur-sm"
                     onClick={() => setIsMobileSidebarOpen(false)}
                   >
                     <X className="h-4 w-4" />
@@ -752,12 +752,12 @@ export default function AdvancedDockWorkspace() {
             </>
           )}
 
-          <div className="flex-1 flex flex-col gap-1 w-full h-full min-h-0">
+          <div className="flex-1 flex flex-col gap-1 w-full h-full min-h-0 overflow-auto md:overflow-hidden">
             {rightPanels.length > 0 || centerPanels.length > 0 ? (
-              <div className="flex-1 flex flex-col md:flex-row gap-1 h-full md:min-h-0">
-                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden h-full">
+              <div className="flex-1 flex flex-col md:flex-row gap-1 h-auto md:h-full md:min-h-0 min-h-[400px]">
+                <div className="flex-1 bg-white dark:bg-card border border-card-border rounded overflow-hidden h-full min-h-[400px] md:min-h-0">
                   {centerPanels.length > 0 ? (
-                    centerPanels.map((panelId) => <div key={panelId} className="h-full">{renderPanel(panelId, true)}</div>)
+                    centerPanels.map((panelId) => <div key={panelId} className="h-full min-h-[400px] md:min-h-0">{renderPanel(panelId, true)}</div>)
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm px-2">
                       Central Workspace - Drag panels here
@@ -766,7 +766,7 @@ export default function AdvancedDockWorkspace() {
                 </div>
 
                 {rightPanels.length > 0 && (
-                  <div className="w-full md:w-auto h-full md:h-auto">
+                  <div className="w-full md:w-auto h-full md:h-auto min-h-[300px]">
                     <Resizable
                       size={{ width: rightPanelWidth, height: "100%" }}
                       onResizeStop={(e, direction, ref, d) => {
@@ -775,10 +775,10 @@ export default function AdvancedDockWorkspace() {
                       enable={{ left: true }}
                       minWidth={200}
                       maxWidth={600}
-                      className="flex flex-col gap-1 w-full md:w-auto h-full"
+                      className="flex flex-col gap-1 w-full md:w-auto h-full min-h-[300px] md:min-h-0"
                     >
                       {rightPanels.map((panelId) => (
-                        <div key={panelId} className="flex-1 min-h-0 h-full">
+                        <div key={panelId} className="flex-1 min-h-[300px] md:min-h-0 h-full">
                           {renderPanel(panelId, true)}
                         </div>
                       ))}
@@ -793,7 +793,7 @@ export default function AdvancedDockWorkspace() {
             )}
 
             {bottomPanels.length > 0 && (
-              <div className="w-full h-auto md:h-auto">
+              <div className="w-full h-auto md:h-auto min-h-[250px] md:min-h-0">
                 <Resizable
                   size={{ width: "100%", height: bottomPanelHeight }}
                   onResizeStop={(e, direction, ref, d) => {
@@ -802,10 +802,10 @@ export default function AdvancedDockWorkspace() {
                   enable={{ top: true }}
                   minHeight={100}
                   maxHeight={400}
-                  className="flex gap-1 w-full min-h-[200px] md:min-h-0"
+                  className="flex gap-1 w-full min-h-[250px] md:min-h-0"
                 >
                   {bottomPanels.map((panelId) => (
-                    <div key={panelId} className="flex-1 h-full">
+                    <div key={panelId} className="flex-1 h-full min-h-[250px] md:min-h-0">
                       {renderPanel(panelId, true)}
                     </div>
                   ))}
