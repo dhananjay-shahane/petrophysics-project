@@ -29,7 +29,11 @@ def create_app():
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30  # 30 days
     
     # CORS configuration with credentials support
-    CORS(app, supports_credentials=True, origins=['http://localhost:5000', 'http://0.0.0.0:5000'])
+    # In development, allow all origins for Replit proxy compatibility
+    cors_origins = ['http://localhost:5000', 'http://0.0.0.0:5000']
+    if not IS_PRODUCTION:
+        cors_origins = '*'
+    CORS(app, supports_credentials=True, origins=cors_origins)
     
     # Register API routes
     app.register_blueprint(api, url_prefix='/api')
